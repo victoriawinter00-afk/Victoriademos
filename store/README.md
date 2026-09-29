@@ -120,16 +120,87 @@ project. The response is `{ "url": "..." }` and nothing else.
 - `success_url` and `cancel_url` are derived from the request's own origin, so
   local and deployed behave the same without a hardcoded host.
 
-**No orders are recorded yet.** The success page says so plainly. Order creation
-belongs to the Phase 3 webhook, which does not exist. Stock is **validated but not
-reserved** at checkout: reserving belongs with the order, so an abandoned payment
-page cannot silently consume inventory. Insufficient stock comes back as a
-structured error naming the slug and the maximum available, which the cart uses to
-adjust and notify the customer.
+**Orders are recorded by the Phase 3 webhook**, not by this endpoint. Stock is
+**held** (not reserved against `stock`) when the session is created — see below.
 
 Nothing Stripe-related loads on any page. Hosted Checkout is a pure server-side
 redirect: our pages contain no Stripe script, no publishable key, and no card
 fields.
+
+### How long a hold lasts — the stock-exposure dial
+
+`CHECKOUT_SESSION_MINUTES` in `src/index.js` (default **30**, Stripe's minimum)
+sets how long an unpaid session holds its units. **This is a stock-exposure
+setting, not merely a user-experience choice:** raising it lengthens how long a
+unit can be held by a checkout that may never be paid for. Stripe's own default
+is 24 hours, which is far too long for limited inventory. 30 minutes is right for
+the demo; a real client may reasonably prefer 60.
+
+### Stock holds, and why a missed webhook is harmless
+
+Two layers:
+
+- `products.reserved` — a counter, so availability is one atomic conditional
+  `UPDATE` with no read-then-write race. Two customers clicking at the same
+  instant for the last unit: exactly one gets it, the other is told it is sold
+  out **before paying**.
+- `stock_reservations` — one row per held line, recording where the hold came
+  from and when it dies.
+
+The rows make **lazy expiry** possible. If a `checkout.session.expired` webhook
+never arrives, nothing leaks: every availability check ignores holds past their
+`expires_at` and subtracts only the live ones, so the counter repairs itself the
+next time anyone asks. **No cron job, no scheduled Worker, no sweeper process.**
+
+Availability is reported on this basis too — a physical product fully held by open
+checkouts reads as out of stock in `GET /api/products`, not as in stock.
+
+## Orders and the Stripe webhook (phase 3)
+
+`POST /api/stripe/webhook` handles the provider's events. The order of work is
+fixed and identical every time:
+
+1. read the **raw** body (the signature covers exact bytes)
+2. **verify the signature** — `400` on failure, and **no work at all** on an
+   unverified request
+3. insert the event id into `processed_events` — a duplicate returns `200` and
+   stops (the replay guard)
+4. do the work
+5. return `200`
+
+If the work throws after step 3, the claim is **removed** and a `500` is returned,
+so the provider's retry is not swallowed as a duplicate. Without that
+compensation a transient database error would permanently lose an event.
+
+| Event | What happens |
+|---|---|
+| `checkout.session.completed` | `orders` + `order_items` are written **from the session metadata**, never from a browser; `stock` and `reserved` both drop by the quantity; the hold is marked consumed |
+| `checkout.session.expired` | the hold is released (`reserved` drops, `stock` unchanged) |
+| `charge.refunded` | the order is marked `refunded` and the stock is returned, **once** — a second refund event does not return it again |
+| anything else | logged, `200`. Never `500` on an unhandled type, or the provider retries forever |
+
+**A paid order is never dropped.** If the shelf cannot cover a paid order — the
+last unit sold between checkout and payment — the order is still written and
+`orders.needs_attention` is set to 1 so a human looks at it. An order that
+vanishes because stock ran out is a customer who paid and got nothing, and nobody
+finds out until they complain.
+
+### The webhook secret
+
+Local: `STRIPE_WEBHOOK_SECRET` in `store/.dev.vars` (gitignored). Any
+`whsec_`-shaped value works locally, because **you sign your own test payloads
+with it** — which exercises signature verification, the replay guard, and every
+branch without the Stripe CLI or a Stripe account.
+
+Production: the signing secret from the Stripe dashboard, stored as a Worker
+secret. It is never committed and never pasted into a chat.
+
+### Merchant notification — deliberately stubbed
+
+`notifyMerchant()` in `src/webhook.js` logs instead of sending. There is **no
+Cloudflare Email Sending binding in this project and none has been added**:
+Email Sending requires a Workers Paid plan, and quietly adding the binding would
+change the deployment requirements. The function is the marked seam.
 
 ### Shipping — per client, configured in D1
 
@@ -179,15 +250,12 @@ path. Carrier-calculated rates are out of scope too.
 `SHIPPING_COUNTRIES` in `src/index.js` is still a placeholder — the list of
 countries a physical order may ship to is a business decision.
 
-### `reserved` — present in the schema, unused until Phase 3
+### `reserved` and reservations
 
-`products.reserved` exists (default 0) and is **not used by any code yet**. The
-intended Phase 3 behaviour is `available = stock - reserved`, with units reserved
-atomically when a session is created, released on `checkout.session.expired`,
-converted to a sale on `checkout.session.completed`, sessions set to expire after
-30 minutes, and lazy expiry ignoring stale holds so a missed webhook self-heals.
-It is in the schema from the outset so it is designed in rather than added later
-as a migration. **2b itself validates stock and reserves nothing.**
+`products.reserved` is now live: units are held atomically when a checkout session
+is created, released when it expires, and converted to a sale when it completes.
+See **Orders and the Stripe webhook** above for the full lifecycle, and the
+lazy-expiry explanation that removes the need for a cron job.
 
 ### Schema changes need a fresh local database
 
@@ -228,8 +296,10 @@ store/
 ├─ package.json           dev/schema/seed scripts
 ├─ scripts/seed.mjs       docs/demo-catalog.csv -> local D1
 ├─ src/
-│  ├─ index.js           Worker: product reads + POST /api/checkout
-│  └─ shipping/          flat (implemented), weight-band + zone (reserved slots)
+│  ├─ index.js           Worker: product reads, POST /api/checkout, webhook route
+│  ├─ webhook.js         Stripe signature verification + order handlers
+│  ├─ reservations.js    atomic stock holds and lazy expiry
+│  └─ shipping/          flat (implemented), weight-band (reserved slot)
 ├─ public/
 │  ├─ index.html          product list
 │  ├─ product.html        product detail

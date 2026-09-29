@@ -17,13 +17,33 @@
  */
 
 import { resolveShipping } from "./shipping/index.js";
+import {
+  availableFor,
+  nowSeconds,
+  releaseReservation,
+  reserveOne,
+  sweepExpiredReservations,
+} from "./reservations.js";
+import { handleStripeWebhook } from "./webhook.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
 
-// Columns read from D1 and mapped to a public shape. `stock` is selected so the
-// mapper can derive availability, and is never returned to the client.
-const SELECT_COLUMNS =
-  "id, slug, name, description, type, category, price_cents, currency, stock, image_key";
+/**
+ * Columns read from D1 and mapped to a public shape. `stock` is selected so the
+ * mapper can derive availability, and is never returned to the client. `held` is
+ * the live reservation total — holds past their expiry are excluded here, which
+ * is what makes lazy expiry work: a missed expiry webhook costs nothing, because
+ * the next read simply stops counting the dead hold.
+ */
+function availableColumns(nowParam) {
+  return `p.id, p.slug, p.name, p.description, p.type, p.category,
+          p.price_cents, p.currency, p.stock, p.image_key,
+          (SELECT COALESCE(SUM(r.quantity), 0)
+             FROM stock_reservations r
+            WHERE r.slug = p.slug
+              AND r.status = 'active'
+              AND r.expires_at > ${nowParam}) AS held`;
+}
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const REQUEST_ID_PATTERN =
@@ -42,6 +62,17 @@ const MAX_LINES = 50;
    SHIPPING_COUNTRIES is the one remaining placeholder: the list of countries a
    physical order may ship to, which is a business decision, not a technical one.
 --------------------------------------------------------------------------- */
+/**
+ * How long an unpaid checkout session holds its units.
+ *
+ * This is a STOCK-EXPOSURE DIAL, not merely a user-experience choice. Raising it
+ * lengthens how long a unit can be held by a session that may never be paid for.
+ * Stripe's minimum is 30 minutes; 30 is right for the demo, and a real client may
+ * prefer 60. Changing this is a one-line change and needs no redeploy of anything
+ * else.
+ */
+const CHECKOUT_SESSION_MINUTES = 30;
+
 const SHIPPING_COUNTRIES = ["US"];
 
 /** JSON response helper. */
@@ -51,10 +82,15 @@ function json(data, status = 200) {
 
 /**
  * Map a `products` row to the public API shape.
- * Physical items expose in_stock (boolean), never the raw stock count.
+ * Physical items expose in_stock (boolean), never raw stock or reservation
+ * numbers. Availability counts live holds only, so an item fully held by open
+ * checkouts reads as out of stock.
  * Digital and service items are always purchasable — stock is not tracked.
  */
 function toPublicProduct(row) {
+  const held = row.held ?? 0;
+  const available = row.stock === null ? null : Math.max(0, row.stock - held);
+
   return {
     id: row.id,
     slug: row.slug,
@@ -65,7 +101,7 @@ function toPublicProduct(row) {
     price_cents: row.price_cents,
     currency: row.currency,
     image_key: row.image_key ?? null,
-    in_stock: row.type === "physical" ? row.stock !== null && row.stock > 0 : true,
+    in_stock: row.type === "physical" ? available !== null && available > 0 : true,
   };
 }
 
@@ -73,24 +109,28 @@ function toPublicProduct(row) {
 
 /** GET /api/products — every active product, in display order. */
 async function listProducts(env) {
+  const now = nowSeconds();
   const { results } = await env.DB.prepare(
-    `SELECT ${SELECT_COLUMNS}
-       FROM products
-      WHERE active = 1
-      ORDER BY sort_order ASC, name ASC`,
-  ).all();
+    `SELECT ${availableColumns("?1")}
+       FROM products p
+      WHERE p.active = 1
+      ORDER BY p.sort_order ASC, p.name ASC`,
+  )
+    .bind(now)
+    .all();
 
   return json({ products: results.map(toPublicProduct) });
 }
 
 /** GET /api/products/:slug — one active product; 404 for unknown or inactive. */
 async function getProduct(env, slug) {
+  const now = nowSeconds();
   const row = await env.DB.prepare(
-    `SELECT ${SELECT_COLUMNS}
-       FROM products
-      WHERE slug = ?1 AND active = 1`,
+    `SELECT ${availableColumns("?2")}
+       FROM products p
+      WHERE p.slug = ?1 AND p.active = 1`,
   )
-    .bind(slug)
+    .bind(slug, now)
     .first();
 
   if (!row) {
@@ -158,7 +198,7 @@ function parseCheckoutBody(body) {
  * items are stored as a chunked JSON string. Phase 3's webhook reads these back
  * instead of trusting anything the browser sent.
  */
-function addLineItemMetadata(params, lines, needsShipping) {
+function addLineItemMetadata(params, lines, needsShipping, reservationId) {
   const compact = lines.map((line) => ({
     s: line.slug,
     n: line.name,
@@ -177,6 +217,8 @@ function addLineItemMetadata(params, lines, needsShipping) {
   });
   params.set("metadata[items_chunks]", String(chunks.length));
   params.set("metadata[needs_shipping]", needsShipping ? "true" : "false");
+  // The webhook uses this to release or consume exactly this session's holds.
+  params.set("metadata[reservation_id]", reservationId);
 }
 
 /**
@@ -234,29 +276,6 @@ async function handleCheckout(request, env) {
     );
   }
 
-  // Stock is validated, never reserved here. Reserving belongs with the order,
-  // which is created by the verified webhook in Phase 3.
-  const shortages = [];
-  for (const slug of slugs) {
-    const row = bySlug.get(slug);
-    if (row.type !== "physical") continue;
-    const available = row.stock === null ? 0 : row.stock;
-    const requested = wanted.get(slug);
-    if (available < requested) {
-      shortages.push({ slug, requested, available });
-    }
-  }
-  if (shortages.length > 0) {
-    return json(
-      {
-        error: "insufficient_stock",
-        message: "Some items do not have enough stock.",
-        items: shortages,
-      },
-      409,
-    );
-  }
-
   const lines = slugs.map((slug) => {
     const row = bySlug.get(slug);
     return {
@@ -280,6 +299,56 @@ async function handleCheckout(request, env) {
   const currency = lines[0].currency;
   const needsShipping = lines.some((line) => line.type === "physical");
   const origin = new URL(request.url).origin;
+
+  const now = nowSeconds();
+  const expiresAt = now + CHECKOUT_SESSION_MINUTES * 60;
+  const reservationId = crypto.randomUUID();
+
+  // Lazy expiry first: release this product's dead holds and repair the counter,
+  // so a missed checkout.session.expired costs nothing.
+  await sweepExpiredReservations(env, slugs, now);
+
+  // Then report availability against LIVE holds only — the customer is told what
+  // is really available before anything is held.
+  const shortages = [];
+  for (const line of lines) {
+    if (line.type !== "physical") continue;
+    const available = await availableFor(env, line.slug, now);
+    if (available === null || available < line.quantity) {
+      shortages.push({ slug: line.slug, requested: line.quantity, available: available ?? 0 });
+    }
+  }
+  if (shortages.length > 0) {
+    return json(
+      {
+        error: "insufficient_stock",
+        message: "Some items do not have enough stock.",
+        items: shortages,
+      },
+      409,
+    );
+  }
+
+  // Hold the units. One atomic conditional UPDATE per line; a zero row count
+  // means someone else took the last unit between the check and now, so every
+  // hold already taken is given straight back and the customer is told before
+  // paying.
+  for (const line of lines) {
+    if (line.type !== "physical") continue;
+    const held = await reserveOne(env, reservationId, line.slug, line.quantity, expiresAt);
+    if (!held) {
+      await releaseReservation(env, reservationId, "released");
+      const available = await availableFor(env, line.slug, now);
+      return json(
+        {
+          error: "insufficient_stock",
+          message: "Some items do not have enough stock.",
+          items: [{ slug: line.slug, requested: line.quantity, available: available ?? 0 }],
+        },
+        409,
+      );
+    }
+  }
 
   const params = new URLSearchParams();
   params.set("mode", "payment");
@@ -315,6 +384,7 @@ async function handleCheckout(request, env) {
       console.error(
         `checkout: shipping resolution failed — ${error && error.message ? error.message : "unknown"}`,
       );
+      await releaseReservation(env, reservationId, "released");
       return json(
         {
           error: "shipping_unavailable",
@@ -326,6 +396,7 @@ async function handleCheckout(request, env) {
 
     if (options.length === 0) {
       console.error("checkout: a physical cart has no active shipping rate configured");
+      await releaseReservation(env, reservationId, "released");
       return json(
         {
           error: "shipping_unavailable",
@@ -362,7 +433,11 @@ async function handleCheckout(request, env) {
     });
   }
 
-  addLineItemMetadata(params, lines, needsShipping);
+  addLineItemMetadata(params, lines, needsShipping, reservationId);
+
+  // Stock-exposure dial — see CHECKOUT_SESSION_MINUTES. Stripe's minimum is 30
+  // minutes and its default is 24 hours; we never want the default.
+  params.set("expires_at", String(expiresAt));
 
   params.set("success_url", `${origin}/success?session_id={CHECKOUT_SESSION_ID}`);
   params.set("cancel_url", `${origin}/cart`);
@@ -387,6 +462,8 @@ async function handleCheckout(request, env) {
         providerError.code ?? "unknown"
       }`,
     );
+    // No session was created, so the hold has nothing to become: give it back.
+    await releaseReservation(env, reservationId, "released");
     return json(
       {
         error: "payment_provider_error",
@@ -398,6 +475,7 @@ async function handleCheckout(request, env) {
 
   if (!session || typeof session.url !== "string") {
     console.error("checkout: stripe response contained no redirect url");
+    await releaseReservation(env, reservationId, "released");
     return json(
       {
         error: "payment_provider_error",
@@ -424,6 +502,13 @@ export default {
         return json({ error: "Method not allowed" }, 405);
       }
       return listProducts(env);
+    }
+
+    if (pathname === "/api/stripe/webhook" || pathname === "/api/stripe/webhook/") {
+      if (request.method !== "POST") {
+        return json({ error: "Method not allowed" }, 405);
+      }
+      return handleStripeWebhook(request, env);
     }
 
     if (pathname === "/api/checkout" || pathname === "/api/checkout/") {

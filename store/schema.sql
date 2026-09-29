@@ -43,6 +43,10 @@ CREATE TABLE IF NOT EXISTS orders (
   status                TEXT    NOT NULL DEFAULT 'paid'
                                 CHECK (status IN ('paid','fulfilled','refunded','cancelled')),
   fulfilled_at          TEXT,
+  -- Set when a paid order could not be satisfied as recorded (for example the
+  -- last unit was sold between checkout and payment). The order is written
+  -- anyway, because money has already moved; this flag asks a human to look.
+  needs_attention       INTEGER NOT NULL DEFAULT 0 CHECK (needs_attention IN (0,1)),
   created_at            TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -109,6 +113,23 @@ VALUES
    'Placeholder rate. The client must set this for their own product and region.',
    200, NULL, 'physical_only', 'flat', 1, 1);
 
+-- Stock holds (Phase 3) ------------------------------------------------------
+-- One row per physical line held by a live checkout session. `products.reserved`
+-- is the fast counter used by the atomic conditional update; this table records
+-- WHERE each hold came from and WHEN it dies, which is what makes lazy expiry
+-- possible without a cron job: availability checks ignore holds past expires_at,
+-- so a missed checkout.session.expired self-heals on the next read.
+CREATE TABLE IF NOT EXISTS stock_reservations (
+  reservation_id TEXT    NOT NULL,          -- our id, carried in session metadata
+  slug           TEXT    NOT NULL,
+  quantity       INTEGER NOT NULL CHECK (quantity > 0),
+  expires_at     INTEGER NOT NULL,          -- unix seconds
+  status         TEXT    NOT NULL DEFAULT 'active'
+                         CHECK (status IN ('active','consumed','released','expired')),
+  created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (reservation_id, slug)
+);
+
 -- Indexes -------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_products_active    ON products(active, sort_order);
 CREATE INDEX IF NOT EXISTS idx_products_slug      ON products(slug);
@@ -116,3 +137,4 @@ CREATE INDEX IF NOT EXISTS idx_orders_email       ON orders(email);
 CREATE INDEX IF NOT EXISTS idx_orders_created     ON orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_order_items_order  ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_shipping_rates_active ON shipping_rates(active, sort_order);
+CREATE INDEX IF NOT EXISTS idx_stock_reservations_slug ON stock_reservations(slug, status, expires_at);
