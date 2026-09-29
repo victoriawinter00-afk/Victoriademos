@@ -67,8 +67,7 @@
         return item;
     }
 
-    function listSlugFromPath() {
-        var match = window.location.pathname.match(/\/product\/([^/]+)\/?$/);
+    function listSlugFromPath() {        var match = window.location.pathname.match(/\/product\/([^/]+)\/?$/);
         if (!match) return "";
         try {
             return decodeURIComponent(match[1]);
@@ -108,6 +107,42 @@
             .finally(function () {
                 grid.setAttribute("aria-busy", "false");
             });
+    }
+
+    /* Wires the quantity input and Add to cart button once a product is drawn.
+       The cart stores slugs and quantities only; the server re-prices and
+       re-validates at checkout. */
+    function wireAddToCart(product) {
+        var input = document.getElementById("detail-qty");
+        var button = document.getElementById("detail-add");
+        var status = document.getElementById("detail-add-status");
+        var cart = window.StoreCart;
+        if (!input || !button || !status || !cart) return;
+
+        var soldOut = product.type === "physical" && !product.in_stock;
+        input.min = "1";
+        input.max = String(cart.MAX_QTY);
+        input.value = "1";
+
+        if (soldOut) {
+            input.disabled = true;
+            button.disabled = true;
+            button.textContent = "Out of stock";
+            return;
+        }
+
+        button.addEventListener("click", function () {
+            var requested = parseInt(input.value, 10);
+            if (!isFinite(requested) || requested < 1) requested = 1;
+            if (requested > cart.MAX_QTY) requested = cart.MAX_QTY;
+            input.value = String(requested);
+
+            cart.add(product.slug, requested);
+            status.textContent =
+                "Added to cart: " + requested + " \u00d7 " + product.name +
+                ". Your cart now holds " + cart.count() + " " +
+                (cart.count() === 1 ? "item" : "items") + ".";
+        });
     }
 
     function renderDetail() {
@@ -158,6 +193,7 @@
                     " · Item code: " + product.slug;
 
                 document.title = product.name + " — Demo Store";
+                wireAddToCart(product);
                 status.hidden = true;
                 view.hidden = false;
             })

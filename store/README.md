@@ -44,6 +44,7 @@ Then open <http://127.0.0.1:8787/>.
 
 - Product list: <http://127.0.0.1:8787/>
 - Product detail: <http://127.0.0.1:8787/product/demo-physical-01>
+- Cart: <http://127.0.0.1:8787/cart>
 - API list: <http://127.0.0.1:8787/api/products>
 - API detail: <http://127.0.0.1:8787/api/products/demo-digital-04>
 
@@ -75,6 +76,28 @@ to. It also validates the spec rules while parsing —
 
 — and exits with a clear error if a row breaks them.
 
+## Cart (phase 2a)
+
+The cart lives in `localStorage` under the key **`store-cart`**, and the stored
+value is exactly:
+
+```json
+[{ "slug": "demo-physical-01", "quantity": 2 }]
+```
+
+**Prices are never stored.** Every read validates that value as untrusted input:
+non-array data, entries that are not objects, non-slug `slug` values, and
+quantities that are not integers of at least 1 are discarded; quantities above
+99 are clamped. The cleaned list is written back, so bad data does not survive.
+
+The cart page re-reads `GET /api/products` and computes the running total from
+those server prices at render time. A slug that is no longer present or has gone
+inactive is removed from the cart with a visible notice. Availability is shown
+for information only — the server is the authority, and re-validates everything
+at checkout.
+
+Checkout is not part of this step. There is no payment code in the repository.
+
 ## Verifying Phase 1
 
 ```bash
@@ -105,9 +128,11 @@ store/
 ├─ public/
 │  ├─ index.html          product list
 │  ├─ product.html        product detail
+│  ├─ cart.html           cart contents and running total
 │  ├─ css/store.css       design tokens + storefront components
 │  └─ js/
 │     ├─ accessibility.js dark / colorblind toggles
+│     ├─ cart.js          localStorage cart + cart page renderer
 │     └─ store.js         fetch + render (textContent only, no innerHTML)
 └─ docs/
    ├─ MVP-SPEC.md         authoritative spec

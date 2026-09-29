@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo Store — Products</title>
-    <meta name="description" content="Demo Store — a demonstration storefront for physical, digital, and service products. No payment is taken here.">
+    <title>Your cart — Demo Store</title>
+    <meta name="description" content="Cart contents and running total — Demo Store demonstration storefront. No payment is taken.">
     <link rel="stylesheet" href="/css/store.css">
 </head>
-<body data-page="list">
+<body data-page="cart">
     <a class="skip-link" href="#main-content">Skip to content</a>
     <aside class="site-banner" role="status" aria-live="polite">
         No cookies, no tracking scripts, and no third-party resources on this page.
@@ -24,24 +24,36 @@
                         <button class="reset-accessibility" type="button" aria-label="Reset accessibility settings">Reset settings</button>
                     </div>
                 </div>
-                <h1 class="brand">Demo Store</h1>
+                <p class="brand"><a href="/">Demo Store</a></p>
                 <nav class="store-nav" aria-label="Store">
-                    <a href="/" aria-current="page">All products</a>
-                    <a href="/cart">Cart (<span data-cart-count>0</span>)</a>
+                    <a href="/">All products</a>
+                    <a href="/cart" aria-current="page">Cart (<span data-cart-count>0</span>)</a>
                 </nav>
-                <p class="tagline">A demonstration catalogue of physical, digital, and service products. Prices, stock, and delivery are real fields read from the store's own database.</p>
-                <p class="site-note">This page loads no external resources and runs no third-party scripts. It is a demo, not a live shop: nothing can be purchased here yet.</p>
             </div>
         </header>
 
-        <section class="catalog" aria-labelledby="catalog-heading">
+        <section class="cart" aria-labelledby="cart-heading">
             <div class="container">
-                <h2 class="visually-hidden" id="catalog-heading">Products</h2>
-                <p class="status" id="catalog-status" role="status" aria-live="polite">Loading products…</p>
+                <h1 id="cart-heading">Your cart</h1>
+                <p class="status" id="cart-status" role="status" aria-live="polite" tabindex="-1">Loading your cart…</p>
                 <noscript>
-                    <p class="status error">This storefront needs JavaScript enabled to display the product catalogue.</p>
+                    <p class="status error">This cart needs JavaScript enabled to read and display its contents.</p>
                 </noscript>
-                <ul class="product-grid" id="product-list" aria-busy="true"></ul>
+
+                <div class="cart-empty" id="cart-empty" hidden>
+                    <p>Your cart is empty.</p>
+                    <p><a class="btn-back" href="/">← Browse products</a></p>
+                </div>
+
+                <ul class="cart-list" id="cart-items"></ul>
+
+                <div class="cart-summary" id="cart-summary" hidden>
+                    <p class="cart-summary__count" id="cart-count-line"></p>
+                    <p class="cart-summary__total">Total: <strong id="cart-total"></strong></p>
+                    <p class="cart-shipping" id="cart-shipping" hidden></p>
+                    <p class="cart-summary__note">Prices come from the store's own product data, read at page load. Checkout is not part of this build yet — nothing is charged here.</p>
+                    <p><a class="btn-back" href="/">← Keep shopping</a></p>
+                </div>
             </div>
         </section>
 
@@ -54,6 +66,5 @@
 
     <script src="/js/accessibility.js" defer></script>
     <script src="/js/cart.js" defer></script>
-    <script src="/js/store.js" defer></script>
 </body>
 </html>

@@ -25,6 +25,10 @@
                     </div>
                 </div>
                 <p class="brand"><a href="/">Demo Store</a></p>
+                <nav class="store-nav" aria-label="Store">
+                    <a href="/">All products</a>
+                    <a href="/cart">Cart (<span data-cart-count>0</span>)</a>
+                </nav>
             </div>
         </header>
 
@@ -44,6 +48,12 @@
                         <h1 id="detail-name"></h1>
                         <p class="detail-price" id="detail-price"></p>
                         <p id="detail-badge"></p>
+                        <div class="detail-buy">
+                            <label for="detail-qty">Quantity</label>
+                            <input id="detail-qty" class="detail-qty" type="number" min="1" max="99" step="1" value="1" inputmode="numeric">
+                            <button id="detail-add" class="btn" type="button">Add to cart</button>
+                        </div>
+                        <p class="status" id="detail-add-status" role="status" aria-live="polite"></p>
                         <p class="detail-description" id="detail-description"></p>
                         <p class="detail-meta" id="detail-meta"></p>
                     </div>
@@ -61,6 +71,7 @@
     </main>
 
     <script src="/js/accessibility.js" defer></script>
+    <script src="/js/cart.js" defer></script>
     <script src="/js/store.js" defer></script>
 </body>
 </html>

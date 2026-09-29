@@ -107,6 +107,11 @@ export default {
     }
 
     // ---- Static storefront -------------------------------------------------
+    // Cart page: the cart itself lives in localStorage and is drawn client-side.
+    if (pathname === "/cart" || pathname === "/cart/") {
+      return env.ASSETS.fetch(new URL("/cart.html", url).toString());
+    }
+
     // Clean product URL -> the static detail page reads the slug from the path.
     if (pathname === "/product" || pathname === "/product/") {
       return Response.redirect(new URL("/", url).toString(), 302);
