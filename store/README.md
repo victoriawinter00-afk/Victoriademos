@@ -312,6 +312,71 @@ Three outcomes, because the redirect genuinely can beat the webhook:
 | `202 {status:"pending"}` | the payment exists but the record has not landed; the page retries a few times, then explains honestly, and **keeps the cart** |
 | `404` | no completed payment for that link; the page says so plainly and **keeps the cart** |
 
+## Admin API (phase 4) — API only, no UI
+
+### The security model
+
+Cloudflare Access sits in front of the deployed hostname and injects a signed
+`Cf-Access-Jwt-Assertion` header. **But this Worker also answers on a
+`workers.dev` hostname, which Access does not cover unless it is configured for
+it separately.** So "the header is present" is not evidence of anything — anyone
+who finds that hostname can type a header by hand. Only the header's
+**signature** is evidence, so the token is verified cryptographically.
+
+Verification order, failing closed at every step: three segments → header parses →
+**`alg` is exactly RS256** (so `none` and HS256 never reach key handling) → `kid`
+present → JWKS fetched (cached 5 minutes) → RSA key with that `kid` → **signature
+verifies** → `exp` (60 s skew) → `nbf` if present → **`aud` equals
+`CF_ACCESS_AUD`** → `iss` equals `CF_ACCESS_TEAM_DOMAIN` → email present. A JWKS
+fetch failure is an authentication failure, never a pass.
+
+**Every unauthenticated `/api/admin/*` request returns 404, not 403.** A 403
+confirms the route exists to someone not entitled to know that.
+
+### Configuration
+
+| Variable | Meaning |
+|---|---|
+| `CF_ACCESS_TEAM_DOMAIN` | e.g. `https://yourteam.cloudflareaccess.com`. Serves the JWKS at `/cdn-cgi/access/certs`, and is also the expected `iss` |
+| `CF_ACCESS_AUD` | the Access application's AUD tag |
+
+Read from the environment, never hardcoded. Locally they live in `.dev.vars`
+(gitignored); when deployed they are Worker configuration.
+
+One variable does double duty — JWKS URL and issuer — precisely because
+Cloudflare signs with `iss` equal to the team domain. That is what makes the
+whole verification path locally testable: point `CF_ACCESS_TEAM_DOMAIN` at a
+local JWKS server and the real code runs unchanged. **There is no local bypass in
+the code, and none was needed.**
+
+### Endpoints
+
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/admin/products` | every product, including inactive |
+| `POST /api/admin/products` | create. Validates slug, type, integer cents, and that `stock` is NULL for non-physical |
+| `PATCH /api/admin/products/:slug` | partial update. The slug cannot be changed (it is the public address), and changing a product away from physical clears `stock` |
+| `DELETE /api/admin/products/:slug` | **soft delete** — `active = 0`. The row is never deleted, because order snapshots reference it |
+| `GET /api/admin/orders` | filters `status`, `email`, `since`, `until`, `limit` (max 500); returns a `needs_attention` count |
+| `GET /api/admin/orders/:id` | the order with its line-item snapshots |
+| `PATCH /api/admin/orders/:id` | `{ "status": "fulfilled" }` sets the status and stamps `fulfilled_at` once — repeating it does not move the timestamp |
+
+### Audit
+
+Every admin **write** appends to `admin_audit` with the actor email taken from the
+**verified** token. The write and its audit row are placed in **one D1 batch**,
+which is transactional, so a write cannot commit without its audit row and a
+rejected write leaves none. This is enforced by construction rather than by
+remembering.
+
+### Not built here
+
+- **No admin UI** — deliberately API only.
+- **Image upload to R2 is phase 4e** and is separate.
+- **Nothing clears `needs_attention` yet** — it is surfaced, not dismissible.
+- Whether Access blocks an unauthenticated request **at the edge** can only be
+  verified against a deployed route.
+
 ## Verifying Phase 1
 
 ```bash

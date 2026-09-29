@@ -17,6 +17,7 @@
  */
 
 import { resolveShipping } from "./shipping/index.js";
+import { handleAdmin } from "./admin/index.js";
 import {
   availableFor,
   nowSeconds,
@@ -635,6 +636,12 @@ export default {
         return json({ error: "not_found", message: "That order link is not valid." }, 404);
       }
       return getOrderForSession(env, sessionId);
+    }
+
+    // Admin surface. Guarded by Cloudflare Access token verification; failures
+    // are 404 so an unauthenticated caller learns nothing about these routes.
+    if (pathname === "/api/admin" || pathname.startsWith("/api/admin/")) {
+      return handleAdmin(request, env, pathname);
     }
 
     // Unknown API route: JSON 404, never the storefront HTML.
