@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout complete — Demo Store</title>
-    <meta name="description" content="Checkout step complete — Demo Store demonstration storefront. No order is recorded and no real payment is taken.">
+    <meta name="description" content="Checkout step complete — Demo Store demonstration storefront. Your order is recorded from the payment provider's own confirmation; no real payment is taken.">
     <link rel="stylesheet" href="/css/store.css">
 </head>
 <body data-page="success">
@@ -36,13 +36,20 @@
             <div class="container">
                 <h1 id="success-heading">Checkout step complete</h1>
 
+                <p class="status" id="order-status" role="status" aria-live="polite">Confirming your order…</p>
+
+                <div class="cart-summary" id="order-summary" hidden>
+                    <h2>What you bought</h2>
+                    <ul class="order-lines" id="order-lines"></ul>
+                    <p class="order-total">Total: <strong id="order-total"></strong></p>
+                    <p class="order-shipping" id="order-shipping" hidden></p>
+                </div>
+
                 <div class="cart-summary">
-                    <p><strong>The payment step finished. No real money changed hands.</strong></p>
-                    <p>This is a demonstration store, and the payment step runs against a test payment account. If you entered a card just now, it was a test card.</p>
-                    <p>Your order is recorded by the store automatically, from the confirmation the payment provider sends — never from your browser. Only the payment provider's own confirmation can create an order.</p>
-                    <p>Because this is a test account, the order exists in the store's own records but no goods will be shipped and no receipt email is sent.</p>
+                    <p><strong id="order-headline">This page shows the order the payment provider confirmed.</strong></p>
+                    <p id="order-explanation">If you have just paid, the order appears here as soon as the provider's confirmation reaches the store.</p>
                     <p class="cart-summary__note">Nothing on this page reads or displays your payment details, and this page loads no third-party scripts.</p>
-                    <p><a class="btn-back" href="/">← Back to all products</a></p>
+                    <p><a class="btn-back" href="/">← return to store</a></p>
                 </div>
             </div>
         </section>
@@ -56,5 +63,6 @@
 
     <script src="/js/accessibility.js" defer></script>
     <script src="/js/cart.js" defer></script>
+    <script src="/js/success.js" defer></script>
 </body>
 </html>

@@ -172,6 +172,14 @@
         refreshCount();
     }
 
+    /* Empties the cart. Called only when an order is CONFIRMED to exist — never
+       on page load, or someone who abandons checkout and comes back would lose
+       the selection they were still deciding on. */
+    function clear() {
+        write([]);
+        refreshCount();
+    }
+
     /* ---- Cart page ------------------------------------------------------- */
 
     var listElement = null;
@@ -586,6 +594,7 @@
         add: add,
         setQuantity: setQuantity,
         remove: remove,
+        clear: clear,
         count: count,
         refreshCount: refreshCount
     };

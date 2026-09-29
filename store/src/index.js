@@ -46,6 +46,8 @@ function availableColumns(nowParam) {
 }
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,79}$/;
+// Stripe Checkout session ids, e.g. cs_test_a1B2... — the order lookup key.
+const SESSION_ID_PATTERN = /^cs_[A-Za-z0-9_]{10,200}$/;
 const REQUEST_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -489,6 +491,93 @@ async function handleCheckout(request, env) {
   return json({ url: session.url });
 }
 
+/* ------------------------------ Orders ------------------------------------ */
+
+/**
+ * GET /api/orders/:sessionId — the order recorded for one checkout session.
+ *
+ * The session id IS the bearer token: Stripe generates it, it is long and
+ * unguessable, and Stripe hands it back in the success URL. It is the ONLY key
+ * accepted here — never an order id, never an email — and it is never logged.
+ *
+ * Line items come from the order snapshot rather than a join back to `products`,
+ * so a later price change cannot rewrite what someone bought.
+ *
+ * The redirect genuinely can beat the webhook, so three outcomes are possible:
+ *   200 {status:"recorded"}  the order exists
+ *   202 {status:"pending"}   the payment exists but the record has not landed
+ *   404                      no completed payment for this link
+ */
+async function getOrderForSession(env, sessionId) {
+  if (!SESSION_ID_PATTERN.test(sessionId)) {
+    return json({ error: "not_found", message: "That order link is not valid." }, 404);
+  }
+
+  const order = await env.DB.prepare(
+    `SELECT id, status, subtotal_cents, shipping_cents, total_cents, currency,
+            needs_shipping, created_at
+       FROM orders
+      WHERE stripe_session_id = ?1`,
+  )
+    .bind(sessionId)
+    .first();
+
+  if (order) {
+    const { results } = await env.DB.prepare(
+      `SELECT slug_snapshot AS slug, name_snapshot AS name, type_snapshot AS type,
+              unit_price_cents, quantity
+         FROM order_items
+        WHERE order_id = ?1
+        ORDER BY rowid ASC`,
+    )
+      .bind(order.id)
+      .all();
+
+    return json({
+      status: "recorded",
+      order: {
+        status: order.status,
+        subtotal_cents: order.subtotal_cents,
+        shipping_cents: order.shipping_cents,
+        total_cents: order.total_cents,
+        currency: order.currency,
+        needs_shipping: order.needs_shipping === 1,
+        created_at: order.created_at,
+        items: results,
+      },
+    });
+  }
+
+  /* No order yet. Ask the provider whether the payment actually completed,
+     because saying "we cannot find your order" to someone who has just paid
+     would be both wrong and alarming. */
+  let paid = null;
+  try {
+    const response = await fetch(
+      `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
+      { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+    );
+    if (response.ok) {
+      const session = await response.json();
+      paid = Boolean(session && session.payment_status === "paid");
+    } else if (response.status === 404) {
+      paid = false;
+    }
+  } catch {
+    // Cannot tell: treat as still-arriving rather than as invalid.
+    paid = null;
+  }
+
+  if (paid === false) {
+    return json(
+      { error: "not_found", message: "No completed payment was found for this order link." },
+      404,
+    );
+  }
+
+  return json({ status: "pending" }, 202);
+}
+
 /* --------------------------------- Router --------------------------------- */
 
 export default {
@@ -532,6 +621,20 @@ export default {
       }
 
       return getProduct(env, slug);
+    }
+
+    const orderMatch = pathname.match(/^\/api\/orders\/([^/]+)\/?$/);
+    if (orderMatch) {
+      if (request.method !== "GET") {
+        return json({ error: "Method not allowed" }, 405);
+      }
+      let sessionId;
+      try {
+        sessionId = decodeURIComponent(orderMatch[1]);
+      } catch {
+        return json({ error: "not_found", message: "That order link is not valid." }, 404);
+      }
+      return getOrderForSession(env, sessionId);
     }
 
     // Unknown API route: JSON 404, never the storefront HTML.

@@ -269,6 +269,49 @@ npm run db:schema
 npm run db:seed
 ```
 
+## Storefront controls (phase 2c)
+
+**Category filters.** Four toggle buttons — All Products, Digital, Physical,
+Service — above the grid. Digital/Physical/Service multi-select; the selected set
+*is* the state and an empty set means All Products, so mutual exclusion holds by
+construction rather than by bookkeeping. Unselecting the last specific type
+reverts to All Products instead of leaving an empty grid. Filtering is
+client-side (`/api/products` already returns everything) and the state is
+**in-memory**, so it resets on navigation — which is exactly what makes "return to
+store" land in the default layout.
+
+The result count is written to a plain element on first render. The `aria-live`
+region stays **empty on load** and is written only on a user-initiated change, so
+it cannot interrupt a screen reader the moment the page opens.
+
+**Add to cart from a card.** Every card carries an Add to cart control beside its
+availability badge, styled the same, disabled for out-of-stock physical items. It
+uses the same cart module as the product page, updates the nav count, and shows
+`Added ✓` for about a second before reverting.
+
+**Clearing the cart.** `StoreCart.clear()` runs **only** when the success page has
+confirmed the order exists. It never runs on page load, so abandoning checkout and
+coming back keeps the selection, and it does not run while an order is still being
+confirmed.
+
+## Order lookup
+
+`GET /api/orders/:sessionId` returns the order for one Stripe Checkout session,
+with line items read from the **order snapshot** rather than joined back to
+`products`, so a later price change cannot rewrite what someone bought.
+
+The **session id is the bearer token** — Stripe generates it, it is long and
+unguessable, and Stripe returns it in the success URL. It is the only accepted
+key: never an order id, never an email. It is never logged.
+
+Three outcomes, because the redirect genuinely can beat the webhook:
+
+| Response | Meaning |
+|---|---|
+| `200 {status:"recorded"}` | the order exists; the success page renders it and **clears the cart** |
+| `202 {status:"pending"}` | the payment exists but the record has not landed; the page retries a few times, then explains honestly, and **keeps the cart** |
+| `404` | no completed payment for that link; the page says so plainly and **keeps the cart** |
+
 ## Verifying Phase 1
 
 ```bash

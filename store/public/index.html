@@ -37,7 +37,21 @@
         <section class="catalog" aria-labelledby="catalog-heading">
             <div class="container">
                 <h2 class="visually-hidden" id="catalog-heading">Products</h2>
-                <p class="status" id="catalog-status" role="status" aria-live="polite">Loading products…</p>
+
+                <div class="catalog-controls">
+                    <div class="catalog-filters" role="group" aria-label="Filter products by type">
+                        <button type="button" class="filter-toggle" data-filter="all" aria-pressed="true">All Products</button>
+                        <button type="button" class="filter-toggle" data-filter="digital" aria-pressed="false">Digital</button>
+                        <button type="button" class="filter-toggle" data-filter="physical" aria-pressed="false">Physical</button>
+                        <button type="button" class="filter-toggle" data-filter="service" aria-pressed="false">Service</button>
+                    </div>
+                    <p class="catalog-count" id="catalog-count">Loading products…</p>
+                </div>
+
+                <!-- Live region. Deliberately EMPTY on load: only a user-initiated
+                     change writes to it, so it cannot interrupt a screen reader the
+                     moment the page opens. -->
+                <p class="status" id="catalog-status" role="status" aria-live="polite"></p>
                 <noscript>
                     <p class="status error">This storefront needs JavaScript enabled to display the product catalogue.</p>
                 </noscript>

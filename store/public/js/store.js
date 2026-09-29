@@ -39,6 +39,7 @@
 
     function buildCard(product) {
         var item = el("li", "product-card");
+        item.setAttribute("data-type", product.type);
 
         var media = el("div", "product-card__media");
         media.setAttribute("aria-hidden", "true");
@@ -60,20 +61,127 @@
 
         var footer = el("div", "product-card__footer");
         footer.appendChild(el("span", "price", formatPrice(product.price_cents, product.currency)));
-        footer.appendChild(buildBadge(product));
+
+        /* The add control sits immediately beside the availability badge and is
+           styled the same, so the pair reads as one line of actions. */
+        var actions = el("div", "product-card__actions");
+        actions.appendChild(buildBadge(product));
+
+        var addButton = el("button", "badge badge-action", "Add to cart");
+        addButton.type = "button";
+        addButton.setAttribute("data-card-add", product.slug);
+        addButton.setAttribute("aria-label", "Add " + product.name + " to cart");
+        if (product.type === "physical" && !product.in_stock) {
+            addButton.disabled = true;
+            addButton.setAttribute("aria-disabled", "true");
+            addButton.title = "Out of stock";
+        }
+        actions.appendChild(addButton);
+        footer.appendChild(actions);
         body.appendChild(footer);
 
         item.appendChild(body);
         return item;
     }
 
-    function listSlugFromPath() {        var match = window.location.pathname.match(/\/product\/([^/]+)\/?$/);
+    function listSlugFromPath() {
+        var match = window.location.pathname.match(/\/product\/([^/]+)\/?$/);
         if (!match) return "";
         try {
             return decodeURIComponent(match[1]);
         } catch (err) {
             return "";
         }
+    }
+
+    /* ---- Catalog filters -------------------------------------------------
+       The selected set IS the state, and an EMPTY set means "All Products".
+       Mutual exclusion therefore holds by construction rather than by
+       bookkeeping: All is pressed exactly when the set is empty, so selecting
+       the first type necessarily unpresses it, and pressing All clears it. */
+    var selectedTypes = new Set();
+
+    function setCatalogCount(text) {
+        var count = document.getElementById("catalog-count");
+        if (count) count.textContent = text;
+    }
+
+    /* `announce` is true only for a user-initiated change. On first render it is
+       false, so the live region stays empty and a screen reader is not
+       interrupted the moment the page opens. */
+    function applyFilterState(announce) {
+        var grid = document.getElementById("product-list");
+        if (!grid) return;
+
+        var shown = 0;
+        Array.prototype.forEach.call(grid.querySelectorAll(".product-card"), function (card) {
+            var visible =
+                selectedTypes.size === 0 || selectedTypes.has(card.getAttribute("data-type"));
+            card.hidden = !visible;
+            if (visible) shown += 1;
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll(".filter-toggle"), function (button) {
+            var filter = button.getAttribute("data-filter");
+            var pressed =
+                filter === "all" ? selectedTypes.size === 0 : selectedTypes.has(filter);
+            button.setAttribute("aria-pressed", pressed ? "true" : "false");
+        });
+
+        setCatalogCount(shown === 1 ? "1 product" : shown + " products");
+
+        if (announce) {
+            var status = document.getElementById("catalog-status");
+            if (status) {
+                status.textContent =
+                    shown === 1 ? "Showing 1 product." : "Showing " + shown + " products.";
+            }
+        }
+    }
+
+    function onFilterClick(event) {
+        var button = event.target.closest ? event.target.closest(".filter-toggle") : null;
+        if (!button) return;
+
+        var filter = button.getAttribute("data-filter");
+        if (filter === "all") {
+            selectedTypes.clear();
+        } else if (selectedTypes.has(filter)) {
+            selectedTypes.delete(filter);
+        } else {
+            selectedTypes.add(filter);
+        }
+
+        /* Unselecting the last specific type reverts to All Products rather than
+           leaving an empty grid with no obvious way back. */
+        applyFilterState(true);
+    }
+
+    /* ---- Add to cart from a card ----------------------------------------- */
+    var ADD_CONFIRM_MS = 1200;
+    var addTimers = new WeakMap();
+
+    function onCardAddClick(event) {
+        var button = event.target.closest ? event.target.closest("[data-card-add]") : null;
+        if (!button || button.disabled) return;
+
+        var cart = window.StoreCart;
+        var slug = button.getAttribute("data-card-add");
+        if (!cart || !slug) return;
+
+        /* The same module the product page uses, so the two cannot disagree. */
+        cart.add(slug, 1);
+
+        var pending = addTimers.get(button);
+        if (pending) window.clearTimeout(pending);
+        button.textContent = "Added \u2713";
+        addTimers.set(
+            button,
+            window.setTimeout(function () {
+                button.textContent = "Add to cart";
+                addTimers.delete(button);
+            }, ADD_CONFIRM_MS)
+        );
     }
 
     function renderList() {
@@ -90,7 +198,7 @@
                 var products = (data && data.products) || [];
                 grid.textContent = "";
                 if (products.length === 0) {
-                    status.textContent = "No products are available yet.";
+                    setCatalogCount("No products are available yet.");
                     return;
                 }
                 var fragment = document.createDocumentFragment();
@@ -98,7 +206,13 @@
                     fragment.appendChild(buildCard(product));
                 });
                 grid.appendChild(fragment);
-                status.textContent = products.length + (products.length === 1 ? " product." : " products.");
+
+                grid.addEventListener("click", onCardAddClick);
+                var filterGroup = document.querySelector(".catalog-filters");
+                if (filterGroup) filterGroup.addEventListener("click", onFilterClick);
+
+                // Silent on load: nothing is announced until the customer acts.
+                applyFilterState(false);
             })
             .catch(function (error) {
                 status.classList.add("error");

@@ -812,6 +812,121 @@ body.dark-mode .cart-item__remove {
 }
 
 /* ------------------------------
+   CATALOG FILTERS
+------------------------------- */
+.catalog-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.catalog-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.filter-toggle {
+    border: 1px solid var(--color-border);
+    background: var(--color-background);
+    color: var(--color-text);
+    border-radius: var(--border-radius-xl);
+    padding: 0.5rem 1rem;
+    min-height: 44px;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.filter-toggle:hover,
+.filter-toggle:focus-visible {
+    background: var(--color-focus);
+}
+
+.filter-toggle[aria-pressed="true"] {
+    background: var(--color-accent);
+    border-color: var(--color-accent-dark);
+    color: #1d2d2a;
+}
+
+.catalog-count {
+    font-size: var(--font-size-medium);
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ------------------------------
+   CARD ACTIONS
+------------------------------- */
+.product-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.badge-action {
+    font-family: var(--font-family);
+    cursor: pointer;
+}
+
+.badge-action:hover:not(:disabled),
+.badge-action:focus-visible {
+    background: var(--color-accent);
+}
+
+.badge-action:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ------------------------------
+   ORDER SUMMARY (success page)
+------------------------------- */
+.order-lines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin: var(--spacing-sm) 0 var(--spacing-md);
+}
+
+.order-line {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.25rem;
+}
+
+.order-line__price {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.order-total {
+    font-size: var(--font-size-large);
+}
+
+.order-shipping {
+    font-size: var(--font-size-medium);
+}
+
+body.dark-mode .filter-toggle {
+    background-color: #23414f;
+    border-color: #5e9bb5;
+    color: #f2f7ff;
+}
+
+body.dark-mode .filter-toggle[aria-pressed="true"] {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent-dark);
+    color: #1d2d2a;
+}
+
+/* ------------------------------
    STATUS / ERROR REGIONS
 ------------------------------- */
 .status {
