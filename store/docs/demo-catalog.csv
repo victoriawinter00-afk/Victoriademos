@@ -1,0 +1,51 @@
+slug,name,type,category,price_cents,stock,description,active
+demo-physical-01,"Demo Physical 01 — Your First Sale",physical,Physical — Apparel,2400,24,"A placeholder garment. This is where your best seller goes.",1
+demo-physical-02,"Demo Physical 02 — The One They Gift",physical,Physical — Home,3200,18,"A placeholder home good. Swap it for something people give away.",1
+demo-physical-03,"Demo Physical 03 — Your Best Seller",physical,Physical — Apparel,2800,40,"A placeholder. Every store has one item that carries it.",1
+demo-physical-04,"Demo Physical 04 — The Restock Refill",physical,Physical — Home,1600,60,"A placeholder consumable. The item customers come back for.",1
+demo-physical-05,"Demo Physical 05 — Small Batch, Big Start",physical,Physical — Paper,1200,35,"A placeholder small-batch item. Starting small is still starting.",1
+demo-physical-06,"Demo Physical 06 — Awaiting A Name",physical,Physical — Paper,1800,0,"A placeholder, deliberately out of stock. Testing needs a sold-out item.",1
+demo-physical-07,"Demo Physical 07 — Your Shop Window",physical,Physical — Home,4500,12,"A placeholder feature item. The one that makes people look twice.",1
+demo-physical-08,"Demo Physical 08 — The Repeat Order",physical,Physical — Home,2200,48,"A placeholder. The second purchase is the one that counts.",1
+demo-physical-09,"Demo Physical 09 — The Weekend Seller",physical,Physical — Apparel,3400,20,"A placeholder. Some products only move on Saturdays.",1
+demo-physical-10,"Demo Physical 10 — Your First Hundred",physical,Physical — Kit,5600,14,"A placeholder bundle. A hundred of these is a real milestone.",1
+demo-physical-11,"Demo Physical 11 — The Gift That Started It",physical,Physical — Home,2600,30,"A placeholder gift item. Someone's first impression lives here.",1
+demo-physical-12,"Demo Physical 12 — Steady Seller",physical,Physical — Paper,1400,55,"A placeholder. Never your headline, never out of stock.",1
+demo-physical-13,"Demo Physical 13 — The One You Are Proud Of",physical,Physical — Apparel,6800,10,"A placeholder at a confident price. Charge what it is worth.",1
+demo-physical-14,"Demo Physical 14 — Fits In A Mailer",physical,Physical — Paper,1500,44,"A placeholder that ships cheap. Margins live in small parcels.",1
+demo-physical-15,"Demo Physical 15 — The Second Best Seller",physical,Physical — Apparel,2900,26,"A placeholder. Most stores have two; this is the other one.",1
+demo-physical-16,"Demo Physical 16 — Word Of Mouth",physical,Physical — Kit,3800,16,"A placeholder. The product that gets recommended without prompting.",1
+demo-physical-17,"Demo Physical 17 — Your Local Favourite",physical,Physical — Home,2700,22,"A placeholder. The one locals ask for by name.",1
+demo-physical-18,"Demo Physical 18 — The Sample That Sold",physical,Physical — Paper,900,70,"A placeholder low-price item. Small prices start big habits.",1
+demo-physical-19,"Demo Physical 19 — Packed With Care",physical,Physical — Kit,4200,15,"A placeholder. Presentation is part of the product.",1
+demo-physical-20,"Demo Physical 20 — The Loyalty Buy",physical,Physical — Home,3100,28,"A placeholder. Bought by people who already trust you.",1
+demo-physical-21,"Demo Physical 21 — Your Signature Item",physical,Physical — Apparel,5400,13,"A placeholder for the thing you become known for.",1
+demo-physical-22,"Demo Physical 22 — The Bundle Starter",physical,Physical — Kit,6400,9,"A placeholder bundle. Grouping raises the average order.",1
+demo-physical-23,"Demo Physical 23 — Counter Display",physical,Physical — Home,3600,19,"A placeholder for retail display stock. Physical still sells.",1
+demo-physical-24,"Demo Physical 24 — The Returning Customer",physical,Physical — Apparel,2500,33,"A placeholder. Ordered twice by the same name.",1
+demo-physical-25,"Demo Physical 25 — Your Next Chapter",physical,Physical — Kit,7200,8,"A placeholder at the top of your range. Room to grow into it.",1
+demo-digital-01,"Demo Digital 01 — Your First Download",digital,Digital — Templates,1900,,A placeholder download. Delivered the moment payment clears.,1
+demo-digital-02,"Demo Digital 02 — The Guide You Have Not Written Yet",digital,Digital — Guides,2900,,A placeholder guide. You already know more than you think.,1
+demo-digital-03,"Demo Digital 03 — Instant Delivery",digital,Digital — Templates,2400,,A placeholder with no shipping and no stock to count.,1
+demo-digital-04,"Demo Digital 04 — Your Template Library",digital,Digital — Templates,3900,,"A placeholder template set. Build it once, sell it often.",1
+demo-digital-05,"Demo Digital 05 — The Checklist They Thank You For",digital,Digital — Guides,1200,,A placeholder checklist. Simple things sell surprisingly well.,1
+demo-digital-06,"Demo Digital 06 — No Shipping Required",digital,Digital — Templates,2200,,A placeholder. The whole margin stays with you.,1
+demo-digital-07,"Demo Digital 07 — Yours In Seconds",digital,Digital — Printables,1600,,A placeholder printable. The fastest delivery you will ever offer.,1
+demo-digital-08,"Demo Digital 08 — The Workbook",digital,Digital — Guides,3400,,A placeholder workbook. Structure is what people pay for.,1
+demo-digital-09,"Demo Digital 09 — Sold While You Sleep",digital,Digital — Templates,2700,,A placeholder with no fulfilment queue and no packing tape.,1
+demo-digital-10,"Demo Digital 10 — Your Best Small Idea",digital,Digital — Guides,900,,A placeholder at the lowest sensible price. Cheap entry point.,1
+demo-digital-11,"Demo Digital 11 — The Mini Course",digital,Digital — Guides,4900,,A placeholder course. Teaching scales better than making things.,1
+demo-digital-12,"Demo Digital 12 — Printable And Yours",digital,Digital — Printables,1400,,A placeholder printable. Customers print it; you do nothing.,1
+demo-digital-13,"Demo Digital 13 — The Backlist",digital,Digital — Templates,2100,,A placeholder for older work that still sells quietly.,1
+demo-digital-14,"Demo Digital 14 — Your Evergreen Seller",digital,Digital — Guides,2600,,A placeholder that will not go out of season.,1
+demo-digital-15,"Demo Digital 15 — The Freebie That Converts",digital,Digital — Guides,0,,A placeholder priced at zero. Free is a strategy not a giveaway.,1
+demo-service-01,"Demo Service 01 — Your First Booking",service,Service — Consulting,12000,,A placeholder service. No shipping and no stock to manage.,1
+demo-service-02,"Demo Service 02 — The Consultation",service,Service — Consulting,15000,,A placeholder consultation. The conversation that starts the work.,1
+demo-service-03,"Demo Service 03 — Your Expert Hour",service,Service — Consulting,10000,,A placeholder hourly service. Time is the cleanest thing to sell.,1
+demo-service-04,"Demo Service 04 — The Site Review",service,Service — Setup,18000,,A placeholder review service. Fulfilled by hand after payment.,1
+demo-service-05,"Demo Service 05 — Your Setup Call",service,Service — Setup,9000,,A placeholder onboarding call. Everyone starts somewhere.,1
+demo-service-06,"Demo Service 06 — The Second Opinion",service,Service — Consulting,13500,,A placeholder for the work people ask for after the first job.,1
+demo-service-07,"Demo Service 07 — Your Onboarding Session",service,Service — Setup,16500,,A placeholder session. Getting started is the hard part.,1
+demo-service-08,"Demo Service 08 — The Follow-Up",service,Service — Consulting,7500,,A placeholder short service. Repeat business lives here.,1
+demo-service-09,"Demo Service 09 — Your Deep Dive",service,Service — Consulting,25000,,A placeholder premium service. Your highest-value line.,1
+demo-service-10,"Demo Service 10 — The Next Step",service,Service — Setup,20000,,A placeholder that assumes trust is already earned.,1

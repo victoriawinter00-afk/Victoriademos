@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product — Demo Store</title>
+    <meta name="description" content="Product detail — Demo Store demonstration storefront.">
+    <link rel="stylesheet" href="/css/store.css">
+</head>
+<body data-page="detail">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <aside class="site-banner" role="status" aria-live="polite">
+        No cookies, no tracking scripts, and no third-party resources on this page.
+    </aside>
+
+    <main id="main-content">
+        <header class="page-header">
+            <div class="container">
+                <div class="top-bar" aria-label="Accessibility controls">
+                    <div class="accessibility-label">Sensory friendly settings</div>
+                    <div class="accessibility-controls">
+                        <button class="theme-toggle" type="button" aria-label="Toggle dark mode">Dark mode: Off</button>
+                        <button class="colorblind-toggle" type="button" aria-label="Toggle colorblind mode">Colorblind mode: Off</button>
+                        <button class="reset-accessibility" type="button" aria-label="Reset accessibility settings">Reset settings</button>
+                    </div>
+                </div>
+                <p class="brand"><a href="/">Demo Store</a></p>
+            </div>
+        </header>
+
+        <section class="detail" aria-labelledby="detail-name">
+            <div class="container">
+                <p class="status" id="detail-status" role="status" aria-live="polite">Loading product…</p>
+                <noscript>
+                    <p class="status error">This storefront needs JavaScript enabled to display a product.</p>
+                </noscript>
+
+                <div class="detail-grid" id="detail-view" hidden>
+                    <div class="detail-media" aria-hidden="true">
+                        <span class="detail-media-label" id="detail-media-label"></span>
+                    </div>
+                    <div class="detail-panel">
+                        <p class="detail-category" id="detail-category"></p>
+                        <h1 id="detail-name"></h1>
+                        <p class="detail-price" id="detail-price"></p>
+                        <p id="detail-badge"></p>
+                        <p class="detail-description" id="detail-description"></p>
+                        <p class="detail-meta" id="detail-meta"></p>
+                    </div>
+                </div>
+
+                <p class="detail-meta"><a class="btn-back" href="/">← Back to all products</a></p>
+            </div>
+        </section>
+
+        <footer class="disclaimer-footer">
+            <div class="container">
+                <p><strong>Demo Store</strong> — a demonstration storefront. No payment is taken and no orders are placed on this page.</p>
+            </div>
+        </footer>
+    </main>
+
+    <script src="/js/accessibility.js" defer></script>
+    <script src="/js/store.js" defer></script>
+</body>
+</html>

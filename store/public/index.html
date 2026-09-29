@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Store — Products</title>
+    <meta name="description" content="Demo Store — a demonstration storefront for physical, digital, and service products. No payment is taken here.">
+    <link rel="stylesheet" href="/css/store.css">
+</head>
+<body data-page="list">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <aside class="site-banner" role="status" aria-live="polite">
+        No cookies, no tracking scripts, and no third-party resources on this page.
+    </aside>
+
+    <main id="main-content">
+        <header class="page-header">
+            <div class="container">
+                <div class="top-bar" aria-label="Accessibility controls">
+                    <div class="accessibility-label">Sensory friendly settings</div>
+                    <div class="accessibility-controls">
+                        <button class="theme-toggle" type="button" aria-label="Toggle dark mode">Dark mode: Off</button>
+                        <button class="colorblind-toggle" type="button" aria-label="Toggle colorblind mode">Colorblind mode: Off</button>
+                        <button class="reset-accessibility" type="button" aria-label="Reset accessibility settings">Reset settings</button>
+                    </div>
+                </div>
+                <h1 class="brand">Demo Store</h1>
+                <p class="tagline">A demonstration catalogue of physical, digital, and service products. Prices, stock, and delivery are real fields read from the store's own database.</p>
+                <p class="site-note">This page loads no external resources and runs no third-party scripts. It is a demo, not a live shop: nothing can be purchased here yet.</p>
+            </div>
+        </header>
+
+        <section class="catalog" aria-labelledby="catalog-heading">
+            <div class="container">
+                <h2 class="visually-hidden" id="catalog-heading">Products</h2>
+                <p class="status" id="catalog-status" role="status" aria-live="polite">Loading products…</p>
+                <noscript>
+                    <p class="status error">This storefront needs JavaScript enabled to display the product catalogue.</p>
+                </noscript>
+                <ul class="product-grid" id="product-list" aria-busy="true"></ul>
+            </div>
+        </section>
+
+        <footer class="disclaimer-footer">
+            <div class="container">
+                <p><strong>Demo Store</strong> — a demonstration storefront. No payment is taken and no orders are placed on this page.</p>
+            </div>
+        </footer>
+    </main>
+
+    <script src="/js/accessibility.js" defer></script>
+    <script src="/js/store.js" defer></script>
+</body>
+</html>

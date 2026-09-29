@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // One Worker serves BOTH the static storefront (./public) and the API routes.
+  // Single origin => no CORS, no preflight, no allowed-origin list.
+  "name": "demo-store",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-03",
+
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // API paths must reach the Worker before static-asset handling.
+    // Everything else is served as a static file first.
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "demo-store-db",
+      // PLACEHOLDER, local development only. No remote D1 database exists.
+      // Replace with the real id from `wrangler d1 create demo-store-db` at deploy time.
+      "database_id": "f3b1c2d4-5e6a-4b7c-8d9e-0a1b2c3d4e5f"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "demo-store-images"
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}
