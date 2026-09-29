@@ -176,6 +176,28 @@
 
     var listElement = null;
     var pendingFocus = null;
+    var lastRows = [];
+    var checkoutRequestId = uuid4();
+
+    function uuid4() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+            return window.crypto.randomUUID();
+        }
+        var bytes = new Uint8Array(16);
+        if (window.crypto && window.crypto.getRandomValues) {
+            window.crypto.getRandomValues(bytes);
+        } else {
+            for (var i = 0; i < 16; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+        }
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        var hex = "";
+        for (var j = 0; j < 16; j += 1) hex += (bytes[j] + 0x100).toString(16).slice(1);
+        return (
+            hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" +
+            hex.slice(16, 20) + "-" + hex.slice(20, 32)
+        );
+    }
 
     function statusElement() {
         return document.getElementById("cart-status");
@@ -376,6 +398,7 @@
                     }
                     kept.push({ product: product, quantity: item.quantity });
                 });
+                lastRows = kept;
 
                 if (unavailable > 0) {
                     write(
@@ -431,6 +454,107 @@
         renderCart(message);
     }
 
+    function nameFor(slug) {
+        for (var i = 0; i < lastRows.length; i += 1) {
+            if (lastRows[i].product.slug === slug) return lastRows[i].product.name;
+        }
+        return slug;
+    }
+
+    /* Sends slugs and quantities only — never a price. The server resolves
+       everything again and answers with a redirect URL or a structured error. */
+    function onCheckoutClick() {
+        var button = document.getElementById("cart-checkout");
+        var status = document.getElementById("checkout-status");
+        if (!button || !status || button.disabled) return;
+
+        var items = read().items;
+        if (items.length === 0) {
+            status.classList.add("error");
+            status.textContent = "Your cart is empty.";
+            return;
+        }
+
+        var finish = function (message, isError) {
+            button.disabled = false;
+            checkoutRequestId = uuid4();
+            status.classList.toggle("error", Boolean(isError));
+            status.textContent = message;
+        };
+
+        button.disabled = true;
+        status.classList.remove("error");
+        status.textContent = "Starting checkout…";
+
+        fetch("/api/checkout", {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            body: JSON.stringify({ items: items, request_id: checkoutRequestId })
+        })
+            .then(function (response) {
+                return response
+                    .json()
+                    .catch(function () {
+                        return {};
+                    })
+                    .then(function (data) {
+                        return { ok: response.ok, status: response.status, data: data };
+                    });
+            })
+            .then(function (result) {
+                var data = result.data || {};
+
+                if (result.ok && typeof data.url === "string") {
+                    status.textContent = "Taking you to the secure payment page…";
+                    window.location.assign(data.url);
+                    return;
+                }
+
+                if (result.status === 409 && data.error === "insufficient_stock") {
+                    var notes = [];
+                    (data.items || []).forEach(function (shortage) {
+                        if (shortage.available < 1) {
+                            remove(shortage.slug);
+                            notes.push("\u201c" + nameFor(shortage.slug) + "\u201d is out of stock and was removed");
+                        } else {
+                            setQuantity(shortage.slug, shortage.available);
+                            notes.push(
+                                "\u201c" + nameFor(shortage.slug) + "\u201d reduced to " +
+                                shortage.available + ", which is all that is available"
+                            );
+                        }
+                    });
+                    button.disabled = false;
+                    status.textContent = "";
+                    renderCart(notes.join("; ") + ".");
+                    return;
+                }
+
+                if (result.status === 409 && data.error === "unavailable") {
+                    var gone = (data.items || []).map(function (item) {
+                        return item.slug;
+                    });
+                    var remaining = read().items.filter(function (item) {
+                        return gone.indexOf(item.slug) === -1;
+                    });
+                    write(remaining);
+                    refreshCount();
+                    button.disabled = false;
+                    status.textContent = "";
+                    renderCart("Some items were removed because they are no longer available.");
+                    return;
+                }
+
+                finish(
+                    data.message || "Checkout could not be started. Please try again.",
+                    true
+                );
+            })
+            .catch(function () {
+                finish("Checkout could not be started. Check your connection and try again.", true);
+            });
+    }
+
     function init() {
         if (document.body.getAttribute("data-page") !== "cart") {
             refreshCount();
@@ -440,6 +564,11 @@
         listElement = document.getElementById("cart-items");
         if (listElement) {
             listElement.addEventListener("click", onCartClick);
+        }
+
+        var checkoutButton = document.getElementById("cart-checkout");
+        if (checkoutButton) {
+            checkoutButton.addEventListener("click", onCheckoutClick);
         }
 
         /* Read once before the count refresh, otherwise the invalid-entry

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout complete — Demo Store</title>
+    <meta name="description" content="Checkout step complete — Demo Store demonstration storefront. No order is recorded and no real payment is taken.">
+    <link rel="stylesheet" href="/css/store.css">
+</head>
+<body data-page="success">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <aside class="site-banner" role="status" aria-live="polite">
+        No cookies, no tracking scripts, and no third-party resources on this page.
+    </aside>
+
+    <main id="main-content">
+        <header class="page-header">
+            <div class="container">
+                <div class="top-bar" aria-label="Accessibility controls">
+                    <div class="accessibility-label">Sensory friendly settings</div>
+                    <div class="accessibility-controls">
+                        <button class="theme-toggle" type="button" aria-label="Toggle dark mode">Dark mode: Off</button>
+                        <button class="colorblind-toggle" type="button" aria-label="Toggle colorblind mode">Colorblind mode: Off</button>
+                        <button class="reset-accessibility" type="button" aria-label="Reset accessibility settings">Reset settings</button>
+                    </div>
+                </div>
+                <p class="brand"><a href="/">Demo Store</a></p>
+                <nav class="store-nav" aria-label="Store">
+                    <a href="/">All products</a>
+                    <a href="/cart">Cart (<span data-cart-count>0</span>)</a>
+                </nav>
+            </div>
+        </header>
+
+        <section class="cart" aria-labelledby="success-heading">
+            <div class="container">
+                <h1 id="success-heading">Checkout step complete</h1>
+
+                <div class="cart-summary">
+                    <p><strong>No order has been recorded, and nothing was charged in real money.</strong></p>
+                    <p>This is a demonstration store, and the payment step runs against a test payment account. If you entered a card just now, it was a test card and no money moved.</p>
+                    <p>Order records are added in a later stage of this build. Until that exists, this store deliberately does not pretend to remember your purchase — pretending would be worse than saying nothing.</p>
+                    <p class="cart-summary__note">Nothing on this page reads or displays your payment details, and this page loads no third-party scripts.</p>
+                    <p><a class="btn-back" href="/">← Back to all products</a></p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="disclaimer-footer">
+            <div class="container">
+                <p><strong>Demo Store</strong> — a demonstration storefront. No real payment is taken and no orders are placed.</p>
+            </div>
+        </footer>
+    </main>
+
+    <script src="/js/accessibility.js" defer></script>
+    <script src="/js/cart.js" defer></script>
+</body>
+</html>

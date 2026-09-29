@@ -72,7 +72,9 @@ If a prospect needs any of the things in Section 5, the answer is "no, or not ye
 
 > **What this build does not include.**
 >
-> Customer accounts and login. Discount codes and promotions. Subscriptions or recurring billing. Multi-currency. Multiple languages. Calculated shipping rates or carrier integration. Real-time inventory sync with any external system. Abandoned-cart recovery. Product reviews. Wishlists. Loyalty or referral programs. Gift cards. Marketplace or channel sync (Amazon, eBay, Etsy, social). Point of sale. B2B pricing or wholesale tiers. Custom tax rules beyond Stripe Tax. Uptime or response-time guarantees.
+> Customer accounts and login. Discount codes and promotions. Subscriptions or recurring billing. Multi-currency. Multiple languages. Real-time inventory sync with any external system. Abandoned-cart recovery. Product reviews. Wishlists. Loyalty or referral programs. Gift cards. Marketplace or channel sync (Amazon, eBay, Etsy, social). Point of sale. B2B pricing or wholesale tiers. Custom tax rules beyond Stripe Tax. Uptime or response-time guarantees.
+>
+> **Shipping:** flat rates and weight-banded rates are supported. **Carrier-calculated live rates are not offered** — that requires package-packing logic, dimensional weight, multi-box splitting, and handling carrier API failures mid-checkout. See §13 for what shipping does and does not cover.
 >
 > If you need any of these, a hosted platform will serve you better, and I will say so.
 
@@ -215,7 +217,44 @@ Run every item before the store is shown to anyone. Each is a real failure mode,
 
 ---
 
-## 11. What is deliberately not in this document
+## 11. Shipping
+
+**Who decides:** the client. Shipping is **configured per client**, not fixed by the build. Rates live in data, not in code, so they can be changed without a redeploy.
+
+**Implemented as a swappable strategy**, because the operator requires weight-based and distance-based options to remain available:
+
+```
+shipping/index.js        resolveShipping({ items, products, config, destination })
+shipping/flat.js         v1 — implemented
+shipping/weight-band.js  v2 — socket only
+```
+
+### v1 — flat rates (implemented)
+
+Multiple options per client, up to Stripe's limit of five. Each has:
+- `label` — e.g. "Standard shipping", "Express"
+- `amount_cents`
+- `free_over_cents` — optional threshold above which shipping is free
+- `applies_to` — `all` or `physical_only`
+
+### v2 — weight bands (socket only, achievable)
+
+Fully compatible with hosted Checkout, because **the cart is known before the session is created**. Products gain `weight_g`; the strategy totals the cart weight, selects a band, and returns the rate. No new dependencies.
+
+### Not offered — zones/distance and carrier-calculated rates
+
+**Operator decision, 29 Sep 2026: neither is offered.** Recorded here with the reasoning so it is a considered position rather than a gap.
+
+**Zones / distance-based rates.** Not offered. Two reasons, and the second is the one that decided it:
+
+1. Stripe's `shipping_address_collection` collects the address **on Stripe's page, after the session exists** — so at session creation we do not know the destination and cannot rate by distance. Working around it means either asking for a ZIP on our own page before redirect, or moving to embedded Checkout and changing the PCI posture.
+2. Rating on the entered address is supported by Stripe, but documented as a **preview feature**. Depending on unfinished vendor functionality for a client's revenue path is not something to build a product on.
+
+**Carrier-calculated live rates (USPS / UPS / FedEx).** Not offered. Requires package-packing logic (how many boxes), dimensional weight, multi-box splitting, and handling carrier API failures mid-checkout. That is a subsystem in its own right, and it is precisely where the hosted platforms earn their subscription.
+
+**Adding either later is a drop-in, not a rewrite.** `shipping/index.js` defines the interface; a new strategy is a new file. That is the whole point of the shape, and it costs nothing to keep the interface broad while offering only flat and weight-based rates.
+
+## 12. What is deliberately not in this document
 
 - The full D1 DDL — next artifact
 - The Worker endpoint list — next artifact
@@ -224,7 +263,7 @@ Run every item before the store is shown to anyone. Each is a real failure mode,
 
 ---
 
-## 12. Honest limits of this document
+## 13. Honest limits of this document
 
 This spec was drafted with AI assistance and has not been reviewed by a software engineer or an attorney. The safety requirements in Section 6 are sound engineering practice, but **the money path has not been independently reviewed and should be**, before a client's money depends on it. The tax position relies entirely on Stripe Tax and on the client remaining the merchant of record — confirm that with the client's own accountant.
 

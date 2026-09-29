@@ -769,6 +769,14 @@ body.dark-mode .btn-back {
     margin-top: var(--spacing-sm);
 }
 
+.cart-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm) var(--spacing-md);
+    margin: var(--spacing-md) 0 var(--spacing-sm);
+}
+
 body.dark-mode .cart-item {
     background-color: rgba(27, 36, 49, 0.92);
 }

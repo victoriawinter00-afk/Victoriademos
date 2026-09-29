@@ -51,8 +51,12 @@
                     <p class="cart-summary__count" id="cart-count-line"></p>
                     <p class="cart-summary__total">Total: <strong id="cart-total"></strong></p>
                     <p class="cart-shipping" id="cart-shipping" hidden></p>
-                    <p class="cart-summary__note">Prices come from the store's own product data, read at page load. Checkout is not part of this build yet — nothing is charged here.</p>
-                    <p><a class="btn-back" href="/">← Keep shopping</a></p>
+                    <div class="cart-actions">
+                        <button id="cart-checkout" class="btn" type="button">Checkout</button>
+                        <a class="btn-back" href="/">← Keep shopping</a>
+                    </div>
+                    <p class="status" id="checkout-status" role="status" aria-live="polite"></p>
+                    <p class="cart-summary__note">Totals come from the store's own product data, re-read on every visit. Payment is taken on Stripe's hosted page — this store never sees card details, and no third-party script runs on this page. No order is recorded yet; that arrives in the next stage of the build.</p>
                 </div>
             </div>
         </section>
