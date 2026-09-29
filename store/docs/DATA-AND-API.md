@@ -242,6 +242,74 @@ Every name states plainly that it is a demo, and the trailing phrase is an encou
 
 ---
 
-## 5. Honest limits of this document
+## 6. Phase 3 additions — as built (29 Sep 2026)
+
+This section records what Phase 3 actually implemented, because the sections above describe the design *before* it existed. Where they differ, **the code is authoritative and this section explains why.**
+
+### `POST /api/stripe/webhook`
+
+Handler order is **fixed and mandatory**:
+
+1. Read the **raw** body — signature verification needs the exact bytes
+2. **Verify the signature.** Reject **400** on failure. No work happens on an unverified request
+3. Insert the event ID into `processed_events`. A duplicate insert → **200 and stop** (replay guard)
+4. Do the work
+5. Return **200**
+
+**Refinement beyond the original spec — deleting the event claim on failure.** If the work throws *after* step 3, the `processed_events` row is **deleted** and a **500** returned, so Stripe's retry is not swallowed as a duplicate. Without this, a transient database error would permanently lose an event already marked handled. Note the distinction:
+
+- **Unhandled event *type*** → log and return **200** (never 500 — Stripe would retry forever)
+- **Our own transient failure** → delete the claim and return **500** so Stripe retries
+
+These were conflated in the original spec. They are different cases.
+
+### `stock_reservations` — the authoritative hold record
+
+One row per physical line held by a live checkout session:
+
+```
+reservation_id  our id, carried in the Stripe session metadata
+slug
+quantity
+expires_at      unix seconds
+status          active | consumed | released | expired
+PRIMARY KEY (reservation_id, slug)
+```
+
+**Availability is computed from these rows**, filtering `status = 'active' AND expires_at > now` — *not* from `products.reserved`. That is what makes lazy expiry real: a hold past its expiry is ignored automatically, so a missed `checkout.session.expired` costs nothing and needs **no cron job or sweeper**.
+
+### `orders.needs_attention`
+
+Set when a paid order cannot be fulfilled as recorded — for example stock ran out between checkout and payment. **The order is recorded unconditionally and flagged; it is never dropped.** Money that has moved always produces a record, so the operator can refund deliberately rather than discovering the problem in a complaint.
+
+### Counter versus rows — a documented characteristic, not a bug
+
+`products.reserved` is a **denormalised counter** maintained alongside the row data. It exists so the availability check at checkout can be **one atomic statement**:
+
+```sql
+UPDATE products SET reserved = reserved + ?1
+ WHERE id = ?2 AND type = 'physical' AND stock IS NOT NULL
+   AND (stock - reserved) >= ?1;
+```
+
+The counter and the rows **can diverge briefly** — for example a counter of 2 while live holds read 0. This is harmless and **fails in the safe direction**:
+
+- The **product listing** reads the rows, so it is always accurate
+- **Checkout** reads the counter, so a stale-high counter makes it **over-conservative** — it may briefly decline a valid order, and self-corrects on the next successful checkout
+- It can **never oversell**, because a stale-high counter only reduces computed availability
+
+**Failure mode: temporarily declines a valid order. Never: sells stock it does not have.** That is the correct direction to fail.
+
+### `CHECKOUT_SESSION_MINUTES`
+
+Configured in `src/index.js`, **default 30** — Stripe's minimum, chosen deliberately over the 24-hour default. **This is a stock-exposure dial, not a UX preference**: raising it lengthens how long a unit can be held by a session that may never be paid for. A real client may prefer 60.
+
+### Merchant notification — stubbed
+
+`notifyMerchant()` logs locally behind a clearly-marked seam. **Cloudflare Email Sending is deliberately not bound**: it requires Workers Paid, and adding the binding would silently change the deployment plan. Wire it when the client's own plan is known.
+
+## 7. Honest limits of this document
 
 Drafted with AI assistance, not reviewed by a software engineer. The schema and endpoint shapes are conventional and the safety rules are standard practice, but **the money path has not been independently reviewed** and should be before a client's money depends on it. The specific areas worth a second pair of eyes: the webhook idempotency logic, the stock decrement, and the session-ID authorisation on the confirmation lookup.
+
+**One gap specific to Phase 3:** the full paid round trip — card entry through order recording — **has not been completed by anyone**. Stripe appears to treat automated traffic differently on its hosted page, so card entry could not be driven by a test harness. Everything before card entry is verified, and the webhook handler is verified with locally-signed payloads. But the end-to-end paid path needs one manual run before a client's money depends on it.
