@@ -45,7 +45,10 @@
         if (product.image_key) {
             var image = el("img", "product-card__image");
             image.src = "/images/" + product.image_key;
-            image.alt = product.name;
+            // Decorative here: the product name is the adjacent link on the card,
+            // so repeating it as alt would read the name twice. The product page
+            // uses the product name, because there is no adjacent duplicate there.
+            image.alt = "";
             image.loading = "lazy";
             image.decoding = "async";
             media.appendChild(image);

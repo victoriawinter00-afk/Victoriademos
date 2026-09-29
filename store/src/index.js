@@ -77,6 +77,28 @@ const MAX_LINES = 50;
  */
 const CHECKOUT_SESSION_MINUTES = 30;
 
+/* ---------------------------------------------------------------------------
+   Demo clarity on the payment page.
+   Stripe renders `custom_text` as PLAIN TEXT, so these carry no markdown.
+--------------------------------------------------------------------------- */
+const CHECKOUT_SUBMIT_NOTICE =
+  "This is a demonstration store. Use test card 4242 4242 4242 4242 with any " +
+  "future date and any 3-digit code. Do not enter a real card — a real card " +
+  "will be declined.";
+const CHECKOUT_AFTER_SUBMIT_NOTICE =
+  "Demonstration only. No goods ship, nothing is charged, and this is a test environment.";
+
+/* Pre-fills the email field on the payment page so a tester does not have to
+   type it.
+
+   NOTE, so nobody later assumes otherwise: Checkout does NOT allow this field
+   to be LOCKED. A visitor can overwrite it — it is a convenience, not a
+   guarantee. The reliable record of who paid is the order's email, which is
+   written from the payment provider's own confirmation, never from the browser. */
+const CUSTOMER_EMAIL_PREFILL = "victoria00business00@gmail.com";
+
+/* The countries a physical order may ship to. A real client sets this to their
+   own shipping region — it is a business setting, not a technical default. */
 const SHIPPING_COUNTRIES = ["US"];
 
 /** JSON response helper. */
@@ -442,6 +464,12 @@ async function handleCheckout(request, env) {
   // Stock-exposure dial — see CHECKOUT_SESSION_MINUTES. Stripe's minimum is 30
   // minutes and its default is 24 hours; we never want the default.
   params.set("expires_at", String(expiresAt));
+
+  // Demo clarity on the payment page, plus a pre-filled — but NOT locked —
+  // email field. See the notes on the constants above.
+  params.set("customer_email", CUSTOMER_EMAIL_PREFILL);
+  params.set("custom_text[submit][message]", CHECKOUT_SUBMIT_NOTICE);
+  params.set("custom_text[after_submit][message]", CHECKOUT_AFTER_SUBMIT_NOTICE);
 
   params.set("success_url", `${origin}/success?session_id={CHECKOUT_SESSION_ID}`);
   params.set("cancel_url", `${origin}/cart`);

@@ -438,6 +438,58 @@ Cards and the product page render the image when `image_key` is set and the
 styled placeholder when it is not. Alt text is the product name. Images are
 same-origin `/images/...` only, so the zero-third-party-request property holds.
 
+## Deploy configuration
+
+| Setting | Where | Why |
+|---|---|---|
+| `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` | `wrangler.jsonc` → `vars`, committed with placeholders | the production values, reviewable and impossible to forget |
+| the same two, locally | `store/.dev.vars` (gitignored) | `wrangler dev` gives `.dev.vars` **precedence over `vars`** |
+
+**Replace both placeholders in `wrangler.jsonc` before deploying.** Until they are
+real, admin is unreachable in production — and it **fails closed**, so nothing
+will look like an error.
+
+Local development keeps pointing at the local test JWKS, because `.dev.vars`
+wins. That is the point of the split: there is no single file in which a
+localhost value can be deployed by accident.
+
+Neither value is a secret — the team domain *is* the JWKS URL, and both values
+appear in every Access token. Committing them makes them reviewable, which a
+secret is not.
+
+### Route, and the two protection scopes
+
+```jsonc
+"routes": [{ "pattern": "store.victoriawinter00.com", "custom_domain": true }]
+```
+
+`custom_domain: true` has the deploy create the DNS record and the certificate,
+so there is no manual DNS step.
+
+Two different protection scopes share one hostname:
+
+| Path | Protection |
+|---|---|
+| `/images/*` | **none** — anonymous visitors must be able to render product images |
+| `/api/admin/*` | Cloudflare Access at the edge, **plus** token verification inside the Worker |
+
+The Access application must protect `/api/admin/*` only; protecting everything
+would break the storefront. And note: a custom domain does not retire the
+`workers.dev` hostname, so **Access is not what protects the admin API — the JWT
+verification is.** Access is defence in depth; the guard is the control.
+
+`run_worker_first` lists `/images/*` as well as `/api/*`, so no static asset can
+ever shadow the stored-image route.
+
+### Demo clarity on the payment page
+
+The Checkout session carries two `custom_text` notices (above the pay button, and
+after it) and a pre-filled `customer_email`. **Checkout does not permit locking
+the email field** — a visitor can overwrite it, so it is a convenience rather than
+a guarantee. The reliable record of who paid is the order's email, written from
+the provider's own confirmation, never from the browser. The cart carries the same
+notice above its Checkout button, before any redirect.
+
 ## Verifying Phase 1
 
 ```bash

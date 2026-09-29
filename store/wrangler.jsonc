@@ -7,12 +7,37 @@
   "main": "src/index.js",
   "compatibility_date": "2026-09-03",
 
+  // The deployed storefront lives on the client's own subdomain.
+  // `custom_domain: true` has the deploy create the DNS record and certificate,
+  // so there is no manual DNS step.
+  "routes": [{ "pattern": "store.victoriawinter00.com", "custom_domain": true }],
+
+  // PRODUCTION configuration, committed deliberately.
+  //
+  // These are NOT secrets: the team domain IS the JWKS URL and appears in every
+  // Access token, and the AUD appears in every token too. Committing them makes
+  // them reviewable, which a secret is not.
+  //
+  // >>> REPLACE BOTH PLACEHOLDERS once the Cloudflare Access application exists.
+  // >>> Neither value exists yet. Until they are set, admin is unreachable in
+  // >>> production — and it FAILS CLOSED, so nothing will look like an error.
+  //
+  // LOCAL DEVELOPMENT DOES NOT USE THESE. `wrangler dev` gives `.dev.vars`
+  // precedence over `vars`, so a local checkout keeps pointing at the local test
+  // JWKS and the local AUD. That is the whole point of the split: there is no
+  // single file in which a localhost value can be deployed by accident.
+  "vars": {
+    "CF_ACCESS_TEAM_DOMAIN": "REPLACE_ME_access-team-domain",
+    "CF_ACCESS_AUD": "REPLACE_ME_access-app-aud"
+  },
+
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    // API paths must reach the Worker before static-asset handling.
-    // Everything else is served as a static file first.
-    "run_worker_first": ["/api/*"]
+    // API paths and uploaded images must reach the Worker before static-asset
+    // handling, so an asset can never shadow them. Everything else is served as
+    // a static file first.
+    "run_worker_first": ["/api/*", "/images/*"]
   },
 
   "d1_databases": [
