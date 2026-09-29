@@ -10,6 +10,7 @@
 
 import { requireAdmin } from "./auth.js";
 import { createProduct, listProducts, softDeleteProduct, updateProduct } from "./products.js";
+import { uploadProductImage } from "./images.js";
 import { fulfilOrder, getOrder, listOrders } from "./orders.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
@@ -45,6 +46,14 @@ export async function handleAdmin(request, env, pathname) {
   if (pathname === "/api/admin/products" || pathname === "/api/admin/products/") {
     if (method === "GET") return listProducts(env);
     if (method === "POST") return createProduct(request, env, admin.email);
+    return methodNotAllowed();
+  }
+
+  const imageMatch = pathname.match(/^\/api\/admin\/products\/([^/]+)\/image\/?$/);
+  if (imageMatch) {
+    const slug = decodeSegment(imageMatch[1]);
+    if (!slug) return notFound();
+    if (method === "POST") return uploadProductImage(request, env, admin.email, slug);
     return methodNotAllowed();
   }
 

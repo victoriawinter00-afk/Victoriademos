@@ -377,6 +377,67 @@ remembering.
 - Whether Access blocks an unauthenticated request **at the edge** can only be
   verified against a deployed route.
 
+## Product images (phase 5)
+
+### Upload
+
+`POST /api/admin/products/:slug/image` with the **raw image bytes** as the body and
+a `Content-Type` of `image/jpeg`, `image/png` or `image/webp`. There is no admin
+UI, so this is a raw body rather than multipart — one less parser to get wrong.
+
+```bash
+curl -X POST "http://127.0.0.1:8787/api/admin/products/demo-physical-01/image" \
+  -H "Content-Type: image/png" \
+  -H "cf-access-jwt-assertion: <access token>" \
+  --data-binary @photo.png
+```
+
+Guarded by the same Access verification as every other admin route; an
+unauthenticated caller gets **404**. The rules are about what a file **is**:
+
+- the declared `Content-Type` must be on the allowlist, **and**
+- the **bytes must actually be** a JPEG, PNG or WebP (JPEG `FF D8 FF`; PNG's
+  eight-byte signature; `RIFF` + `WEBP`), **and**
+- **the two must agree** — a file declaring `image/png` whose bytes are JPEG is
+  refused, not quietly re-labelled.
+
+The stored type and the file extension come from the **sniffed bytes**, never
+from the header and never from the filename. The object key is generated
+server-side as `products/<slug>-<8 hex>.<ext>`, so nothing the caller supplies
+reaches the key and a filename containing `../` has nothing to attach to.
+
+**5 MiB limit**, checked against `Content-Length` before the body is read and
+again against what actually arrived. The product row and its audit record commit
+in one batch. Replacing an image deletes the previous object best-effort so
+replacements do not accumulate orphans.
+
+**SVG is deliberately not accepted.** It is a document format that can carry
+script and be styled; serving one from the store's own origin is precisely the
+risk this endpoint exists to avoid.
+
+### Serving
+
+`GET /images/:key`. The key is validated against the exact shape the upload
+generates **before R2 is touched**, so traversal cannot reach the bucket. The
+bucket itself is never public — everything goes through the Worker, which is what
+makes the headers enforceable:
+
+| Header | Why |
+|---|---|
+| `Content-Type` | from the extension in our own validated key, never guessed and never from client input |
+| `Content-Disposition: inline` | displayed, not treated as a download |
+| `X-Content-Type-Options: nosniff` | stops a browser deciding a stored file is HTML because it looks like HTML |
+| `Cache-Control: public, max-age=31536000, immutable` | safe because keys are unique per upload; an `ETag` and 304 path are provided |
+
+Unknown or malformed keys are **404** with no bucket access and no provider error
+surfaced.
+
+### Display
+
+Cards and the product page render the image when `image_key` is set and the
+styled placeholder when it is not. Alt text is the product name. Images are
+same-origin `/images/...` only, so the zero-third-party-request property holds.
+
 ## Verifying Phase 1
 
 ```bash

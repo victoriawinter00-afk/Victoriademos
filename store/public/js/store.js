@@ -42,8 +42,24 @@
         item.setAttribute("data-type", product.type);
 
         var media = el("div", "product-card__media");
-        media.setAttribute("aria-hidden", "true");
-        media.appendChild(el("span", "product-card__media-label", TYPE_LABELS[product.type] || product.type));
+        if (product.image_key) {
+            var image = el("img", "product-card__image");
+            image.src = "/images/" + product.image_key;
+            image.alt = product.name;
+            image.loading = "lazy";
+            image.decoding = "async";
+            media.appendChild(image);
+        } else {
+            // No image: the block is decorative, so keep it out of the a11y tree.
+            media.setAttribute("aria-hidden", "true");
+        }
+        var mediaLabel = el(
+            "span",
+            "product-card__media-label",
+            TYPE_LABELS[product.type] || product.type
+        );
+        mediaLabel.setAttribute("aria-hidden", "true");
+        media.appendChild(mediaLabel);
         item.appendChild(media);
 
         var body = el("div", "product-card__body");
@@ -297,6 +313,23 @@
 
                 var mediaLabel = document.getElementById("detail-media-label");
                 mediaLabel.textContent = TYPE_LABELS[product.type] || product.type;
+                mediaLabel.setAttribute("aria-hidden", "true");
+
+                var mediaBox = document.getElementById("detail-media");
+                if (mediaBox) {
+                    var previous = mediaBox.querySelector("img");
+                    if (previous) previous.remove();
+                    if (product.image_key) {
+                        mediaBox.removeAttribute("aria-hidden");
+                        var detailImage = el("img", "detail-image");
+                        detailImage.src = "/images/" + product.image_key;
+                        detailImage.alt = product.name;
+                        detailImage.decoding = "async";
+                        mediaBox.insertBefore(detailImage, mediaLabel);
+                    } else {
+                        mediaBox.setAttribute("aria-hidden", "true");
+                    }
+                }
 
                 var badgeWrap = document.getElementById("detail-badge");
                 badgeWrap.textContent = "";

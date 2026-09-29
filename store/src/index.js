@@ -18,6 +18,7 @@
 
 import { resolveShipping } from "./shipping/index.js";
 import { handleAdmin } from "./admin/index.js";
+import { serveImage } from "./images.js";
 import {
   availableFor,
   nowSeconds,
@@ -647,6 +648,13 @@ export default {
     // Unknown API route: JSON 404, never the storefront HTML.
     if (pathname.startsWith("/api/")) {
       return json({ error: "Not found" }, 404);
+    }
+
+    // ---- Public images ------------------------------------------------------
+    // Served from the private R2 bucket through this Worker, so the response
+    // headers (explicit image content-type, nosniff, inline) are enforceable.
+    if (pathname.startsWith("/images/")) {
+      return serveImage(request, env, pathname);
     }
 
     // ---- Static storefront -------------------------------------------------

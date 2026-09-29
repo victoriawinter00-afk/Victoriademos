@@ -326,6 +326,16 @@ p { margin-bottom: 1rem; }
     padding: 0.2rem 0.6rem;
 }
 
+/* Uploaded imagery fills the media block; same-origin only, so nothing here
+   introduces an external request. */
+.product-card__image,
+.detail-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .product-card__body {
     display: flex;
     flex-direction: column;

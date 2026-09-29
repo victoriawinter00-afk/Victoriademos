@@ -13,6 +13,7 @@ export const AUDIT_ACTIONS = {
   productCreate: "product.create",
   productUpdate: "product.update",
   productSoftDelete: "product.soft_delete",
+  productImage: "product.image",
   orderFulfil: "order.fulfil",
 };
 
