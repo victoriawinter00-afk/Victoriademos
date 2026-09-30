@@ -27,8 +27,8 @@
   // JWKS and the local AUD. That is the whole point of the split: there is no
   // single file in which a localhost value can be deployed by accident.
   "vars": {
-    "CF_ACCESS_TEAM_DOMAIN": "REPLACE_ME_access-team-domain",
-    "CF_ACCESS_AUD": "REPLACE_ME_access-app-aud"
+    "CF_ACCESS_TEAM_DOMAIN": "https://solitary-fire-7db9.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "d8c1d166db5777c892ed28c99c21583aa19b451a730303f42a6c4471cc2d41c9"
   },
 
   "assets": {
