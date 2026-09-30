@@ -28,7 +28,14 @@
   // single file in which a localhost value can be deployed by accident.
   "vars": {
     "CF_ACCESS_TEAM_DOMAIN": "https://solitary-fire-7db9.cloudflareaccess.com",
-    "CF_ACCESS_AUD": "d8c1d166db5777c892ed28c99c21583aa19b451a730303f42a6c4471cc2d41c9"
+    "CF_ACCESS_AUD": "d8c1d166db5777c892ed28c99c21583aa19b451a730303f42a6c4471cc2d41c9",
+
+    // E-29: the payments proxy (Worker B, in ../demo-store-payments). This Worker
+    // cannot reach api.stripe.com over TLS from this custom domain, so the two
+    // Stripe calls hop through Worker B's workers.dev hostname instead. This URL
+    // is not a secret; the shared secret that authenticates the hop is
+    // PROXY_SECRET, which is a Worker secret on BOTH Workers.
+    "PAYMENTS_PROXY_URL": "https://demo-store-payments.victoria00business00.workers.dev"
   },
 
   "assets": {

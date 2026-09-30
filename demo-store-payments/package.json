@@ -1,0 +1,15 @@
+{
+  "name": "demo-store-payments",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Stripe egress proxy for demo-store (Worker B). Reached only via its workers.dev hostname.",
+  "scripts": {
+    "dev": "wrangler dev --port 8788 --ip 127.0.0.1",
+    "deploy": "wrangler deploy",
+    "db:schema": "wrangler d1 execute demo-store-payments-db --local --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.143.1"
+  }
+}

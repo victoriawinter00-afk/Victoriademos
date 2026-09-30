@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // Worker B — the Stripe egress proxy for demo-store. See src/index.js for why
+  // this exists (E-29) and why it is deliberately narrow.
+  //
+  // Reached ONLY on this Worker's workers.dev hostname. There is deliberately no
+  // `routes` block: it must never answer on a custom domain, so the store's
+  // Access rules and the custom-domain egress path cannot apply to it.
+  "name": "demo-store-payments",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-03",
+  "workers_dev": true,
+
+  // Rate limiting must be enforced here, because zone WAF, rate limiting and bot
+  // rules do NOT apply to workers.dev. D1 is used rather than KV because KV is
+  // eventually consistent and a burst could under-count.
+  //
+  // >>> BEFORE THE FIRST DEPLOY: run
+  // >>>   npx wrangler d1 create demo-store-payments-db
+  // >>> and replace the placeholder id below with the real one.
+  "d1_databases": [
+    {
+      "binding": "RATE_LIMIT_DB",
+      "database_name": "demo-store-payments-db",
+      "database_id": "00000000-0000-4000-8000-000000000000"
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}

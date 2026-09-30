@@ -105,10 +105,11 @@ price-shaped in the request. Any unknown or inactive slug, any quantity that is
 not a whole number between 1 and 99, and any over-stock physical item rejects
 the **whole** request — nothing is ever partially fulfilled.
 
-It then creates a Stripe Checkout session on the account behind
-`STRIPE_SECRET_KEY` (a Worker secret; locally the file `store/.dev.vars`, which
-is gitignored) using a plain `fetch` call — there is no `stripe` package in this
-project. The response is `{ "url": "..." }` and nothing else.
+It then creates a Stripe Checkout session **through the payments proxy** — Worker A
+no longer talks to Stripe directly, because it cannot complete TLS to `api.stripe.com`
+from this custom domain (E-29). See **Payments proxy (Worker B)** below. There is no
+`stripe` package in this project; the hop is a plain `fetch`. The response is
+`{ "url": "..." }` and nothing else.
 
 - **Shipping is added only when the resolved cart contains a physical item.** A
   digital/service-only cart never carries a shipping line. See below.
@@ -484,6 +485,105 @@ surfaced.
 Cards and the product page render the image when `image_key` is set and the
 styled placeholder when it is not. Alt text is the product name. Images are
 same-origin `/images/...` only, so the zero-third-party-request property holds.
+
+## Payments proxy (Worker B) — the E-29 workaround
+
+**Why this exists.** A Worker invoked on this custom domain cannot complete a TLS
+handshake to `api.stripe.com`: Cloudflare answers **525** and Stripe never sees the
+request. The same code succeeds when the invoking Worker runs on a `workers.dev`
+hostname. A Worker **cannot** call its *own* `workers.dev` hostname (522), so the
+hop has to be a **separate** Worker:
+
+```
+browser ──► store.victoriawinter00.com/api/checkout   (Worker A: demo-store)
+                     │  server-side fetch, the browser never sees this
+                     ▼
+             demo-store-payments.…workers.dev           (Worker B, ../demo-store-payments)
+                     ▼
+                  api.stripe.com
+```
+
+No CORS, no browser change, no change to Access or to the storefront hostname.
+
+### What Worker B is, and is not
+
+It is **not a generic proxy**. It exposes exactly two operations with fixed Stripe
+paths — `POST /create-session` → `/v1/checkout/sessions` and
+`GET /get-session/:id` → `/v1/checkout/sessions/{id}` — so even a caller who learns
+the shared secret cannot make it call anything else. It:
+
+- requires `x-proxy-secret` to equal `env.PROXY_SECRET`, and answers **404** (never
+  403) when it does not, so an unauthenticated caller learns nothing;
+- holds `STRIPE_SECRET_KEY`, which **Worker A no longer has**;
+- **rate-limits itself** per client IP, because zone WAF/rate-limiting/bot rules do
+  not apply to `workers.dev`. It uses its own D1 (`proxy_rate_limits`) because KV is
+  eventually consistent and a burst could under-count; if the binding is absent it
+  falls back to a per-isolate limit and logs a warning;
+- validates the session id against `^cs_[A-Za-z0-9_]{1,200}$` before interpolating it;
+- logs the operation and the Stripe status only — never the key, the body, or the id;
+- returns JSON in every case, so a non-JSON upstream can never become a parse error
+  in Worker A.
+
+### Configuration
+
+| Value | Where |
+|---|---|
+| `PAYMENTS_PROXY_URL` | `wrangler.jsonc` → `vars` (not a secret) |
+| `PROXY_SECRET` | **secret on both Workers** — `wrangler secret put PROXY_SECRET` |
+| `STRIPE_SECRET_KEY` | Worker B only |
+| `STRIPE_WEBHOOK_SECRET` | Worker A only — the webhook is local crypto + D1 and makes **zero** outbound calls |
+
+Worker A's `handleCheckout` and `getOrderForSession` are the only two functions that
+call Stripe; both now call Worker B. Nothing else changed.
+
+### Deploy runbook (operator)
+
+```bash
+# 1. Worker B: create its own database and paste the id into its wrangler.jsonc
+cd demo-store-payments
+npx wrangler d1 create demo-store-payments-db
+npx wrangler d1 execute demo-store-payments-db --remote --file=./schema.sql
+npx wrangler secret put PROXY_SECRET          # pick a long random value
+npx wrangler secret put STRIPE_SECRET_KEY     # the existing sk_test_ key
+npx wrangler deploy                           # workers_dev only, no custom domain
+
+# 2. Worker A: share the same PROXY_SECRET, and REMOVE the Stripe key from it
+cd ../store
+npx wrangler secret put PROXY_SECRET          # same value as Worker B
+npx wrangler secret delete STRIPE_SECRET_KEY
+npx wrangler secret put STRIPE_WEBHOOK_SECRET # unchanged; keep it
+npx wrangler deploy
+
+# 3. Then verify, on the live custom domain:
+curl -sS -o /dev/null -w '%{http_code}\n' -X POST https://store.victoriawinter00.com/api/checkout \
+  -H 'content-type: application/json' \
+  -d '{"items":[{"slug":"demo-digital-01","quantity":1}],"request_id":"'"$(uuidgen | tr A-Z a-z)"'"}'
+# expect 200 with a checkout.stripe.com URL (NOT 500 / 525)
+```
+
+### Local development
+
+Worker B is a separate project, so local dev runs **two** servers. `wrangler dev`
+gives `.dev.vars` precedence over `vars`, which is what lets Worker A point at the
+local proxy without touching committed config.
+
+```bash
+# terminal 1 — the proxy on 8788
+cd demo-store-payments
+npx wrangler d1 execute demo-store-payments-db --local --file=./schema.sql   # once
+npx wrangler dev --port 8788 --ip 127.0.0.1
+
+# terminal 2 — the store on 8787
+cd store
+npm run dev
+```
+
+`store/.dev.vars` needs `PAYMENTS_PROXY_URL=http://127.0.0.1:8788` and a matching
+`PROXY_SECRET`; `demo-store-payments/.dev.vars` needs the same `PROXY_SECRET` plus
+`STRIPE_SECRET_KEY`. Both files are gitignored. `npm run dev` in
+`demo-store-payments` works too, once its own dependencies are installed — this
+machine's npm policy blocks the `workerd`/`esbuild` postinstall, so locally the
+proxy was run with the store's wrangler.
 
 ## Deploy configuration
 

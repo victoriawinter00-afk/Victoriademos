@@ -115,6 +115,22 @@ function json(data, status = 200) {
 }
 
 /**
+ * Read a JSON body from the payments proxy WITHOUT ever letting a non-JSON
+ * response become an exception. In production the custom-domain egress failure
+ * surfaced as the literal string `"error code: 525" is not valid JSON`; a
+ * non-JSON body must become our structured provider error, never a throw.
+ *
+ * Returns null when the body is not JSON; callers treat that as a failure.
+ */
+async function parseProviderJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Map a `products` row to the public API shape.
  * Physical items expose in_stock (boolean), never raw stock or reservation
  * numbers. Availability counts live holds only, so an item fully held by open
@@ -268,10 +284,12 @@ function idempotencyKeyFor(requestId) {
 
 /** POST /api/checkout — resolves everything from D1, returns only a URL. */
 async function handleCheckout(request, env) {
-  // Demonstration store: with no payment key there is no checkout to start.
-  // Fail clearly and cheaply, before any database work, and never surface a
-  // platform error code for a state that is intended, not broken.
-  if (!env.STRIPE_SECRET_KEY || !String(env.STRIPE_SECRET_KEY).trim()) {
+  // E-29: this Worker no longer speaks to Stripe. It speaks to the payments
+  // proxy (Worker B), which is the only component that holds the Stripe key,
+  // because a Worker on this custom domain cannot complete TLS to Stripe.
+  // No proxy configured means there is no payment to start — say exactly that,
+  // before any database work, rather than surfacing a platform error code.
+  if (!env.PAYMENTS_PROXY_URL || !env.PROXY_SECRET) {
     return json({ error: "not_available", message: DEMO_CHECKOUT_UNAVAILABLE }, 503);
   }
 
@@ -489,17 +507,31 @@ async function handleCheckout(request, env) {
   params.set("success_url", `${origin}/success?session_id={CHECKOUT_SESSION_ID}`);
   params.set("cancel_url", `${origin}/cart`);
 
-  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+  // E-29: the hop goes through Worker B, which is the only holder of the Stripe
+  // key. Nothing but the already-resolved form params leaves this Worker.
+  const stripeResponse = await fetch(`${env.PAYMENTS_PROXY_URL}/create-session`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      "x-proxy-secret": env.PROXY_SECRET,
       "content-type": "application/x-www-form-urlencoded",
       "idempotency-key": idempotencyKeyFor(body.request_id),
     },
     body: params.toString(),
   });
 
-  const session = await stripeResponse.json();
+  const session = await parseProviderJson(stripeResponse);
+
+  if (session === null) {
+    console.error("checkout: payments proxy returned a non-JSON response");
+    await releaseReservation(env, reservationId, "released");
+    return json(
+      {
+        error: "payment_provider_error",
+        message: "The payment step could not be started. Please try again.",
+      },
+      502,
+    );
+  }
 
   if (!stripeResponse.ok) {
     // Log the provider's code for debugging; never surface internals or the key.
@@ -597,20 +629,24 @@ async function getOrderForSession(env, sessionId) {
      because saying "we cannot find your order" to someone who has just paid
      would be both wrong and alarming. */
   let paid = null;
-  try {
-    const response = await fetch(
-      `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
-      { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
-    );
-    if (response.ok) {
-      const session = await response.json();
-      paid = Boolean(session && session.payment_status === "paid");
-    } else if (response.status === 404) {
-      paid = false;
+  if (env.PAYMENTS_PROXY_URL && env.PROXY_SECRET) {
+    try {
+      // E-29: ask Worker B, the only holder of the Stripe key, for the session.
+      const response = await fetch(
+        `${env.PAYMENTS_PROXY_URL}/get-session/${encodeURIComponent(sessionId)}`,
+        { headers: { "x-proxy-secret": env.PROXY_SECRET } },
+      );
+      const session = await parseProviderJson(response);
+      if (response.ok && session) {
+        paid = Boolean(session.payment_status === "paid");
+      } else if (response.status === 404) {
+        paid = false;
+      }
+      // Anything else (including a non-JSON body) stays `null`: cannot tell.
+    } catch {
+      // Cannot tell: treat as still-arriving rather than as invalid.
+      paid = null;
     }
-  } catch {
-    // Cannot tell: treat as still-arriving rather than as invalid.
-    paid = null;
   }
 
   if (paid === false) {
