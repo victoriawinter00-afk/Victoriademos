@@ -105,6 +105,35 @@ const DEMO_CHECKOUT_UNAVAILABLE =
    written from the payment provider's own confirmation, never from the browser. */
 const CUSTOMER_EMAIL_PREFILL = "victoria00business00@gmail.com";
 
+/* ---------------------------------------------------------------------------
+   Checkout branding, applied per session FROM CODE.
+
+   There is no account-level branding API — the dashboard default cannot be set
+   from a shell or from here. Per-session `branding_settings` is the supported
+   path, and it is better for this project anyway: version-controlled, applied to
+   every session, and it travels with the store to a client.
+
+   These are STRIPE'S CLOSED ENUMS, not free text. Do not "tidy" them:
+     font_family   snake_case, e.g. `open_sans` — closest to the store's own
+                   "Segoe UI", "Helvetica Neue", Arial stack
+     border_style  one of `rounded` | `rectangular` | `pill`; `sharp` is REJECTED
+
+   The two colours are the store's own light-mode tokens
+   (public/css/store.css: `--color-accent`, `--color-background`).
+
+   NO LOGO is sent. `branding_settings[logo]` needs a publicly hosted, roughly
+   square image and the project has no such asset — public/og-image-store.png is
+   a 1200x630 social card, the wrong shape. That is a brand-asset gap to raise
+   with the client, not something to fake from code.
+--------------------------------------------------------------------------- */
+const CHECKOUT_BRANDING = {
+  displayName: "Victoria Luna Consulting LLC",
+  buttonColor: "#f5a9b8",
+  backgroundColor: "#fffafb",
+  fontFamily: "open_sans",
+  borderStyle: "rounded",
+};
+
 /* The countries a physical order may ship to. A real client sets this to their
    own shipping region — it is a business setting, not a technical default. */
 const SHIPPING_COUNTRIES = ["US"];
@@ -503,6 +532,14 @@ async function handleCheckout(request, env) {
   params.set("customer_email", CUSTOMER_EMAIL_PREFILL);
   params.set("custom_text[submit][message]", CHECKOUT_SUBMIT_NOTICE);
   params.set("custom_text[after_submit][message]", CHECKOUT_AFTER_SUBMIT_NOTICE);
+
+  // Branding, set per session from code. See CHECKOUT_BRANDING: these are exact
+  // Stripe enum values, and no logo is sent.
+  params.set("branding_settings[display_name]", CHECKOUT_BRANDING.displayName);
+  params.set("branding_settings[button_color]", CHECKOUT_BRANDING.buttonColor);
+  params.set("branding_settings[background_color]", CHECKOUT_BRANDING.backgroundColor);
+  params.set("branding_settings[font_family]", CHECKOUT_BRANDING.fontFamily);
+  params.set("branding_settings[border_style]", CHECKOUT_BRANDING.borderStyle);
 
   params.set("success_url", `${origin}/success?session_id={CHECKOUT_SESSION_ID}`);
   params.set("cancel_url", `${origin}/cart`);
