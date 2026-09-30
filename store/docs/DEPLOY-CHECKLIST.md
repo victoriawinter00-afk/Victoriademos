@@ -27,7 +27,13 @@
 - [x] **Copy the real `database_id`** into `wrangler.jsonc` — done
 - [x] **Apply the schema remotely** — done, 7 tables
 - [x] **Seed the catalog remotely** — done, 50 products (25 physical / 15 digital / 10 service), 1 deliberately out of stock
-- [ ] **Create the R2 bucket** `demo-store-images` — **blocking the deploy.** Confirmed empirically, not assumed: `wrangler deploy` fails with `R2 bucket 'demo-store-images' not found [code: 10085]`. A `--dry-run` **passes** and does not catch this, so the dry-run is not a valid preflight for resource existence
+- [ ] **Enable R2 on the account first** — this is a prerequisite, not the same step as creating the bucket. Tested 2026-09-30: `wrangler r2 bucket list` returns **`Please enable R2 through the Cloudflare Dashboard. [code: 10042]`**, and Cloudflare's own error reference defines 10042 as *"Account not entitled to this feature. Ensure your account has an R2 subscription."* The get-started docs confirm: *"Complete the checkout flow to add an R2 subscription to your account."*
+  - **Path:** account level → `Storage & databases` → `R2 Object Storage` → `Overview` → **Add R2 subscription to my account**
+  - **R2 is ACCOUNT-level, not zone-level.** Do not enter the `victoriawinter00.com` zone — that is the opposite of the Redirect Rule, which was zone-scoped. Buckets belong to the account, not to a domain
+  - **A payment method is required even for the free tier** (10 GB storage, 1M Class A / 10M Class B per month). Usage above the allocation is billable, not capped
+  - **Provisioning can lag.** Other users report 10042 persisting briefly after checkout — wait a few minutes before concluding something is wrong
+- [ ] **Create the R2 bucket** `demo-store-images` — **blocking the deploy.** The name must match `bucket_name` in `wrangler.jsonc` exactly. Confirmed empirically, not assumed: `wrangler deploy` fails with `R2 bucket 'demo-store-images' not found [code: 10085]`. A `--dry-run` **passes** and does not catch this, so the dry-run is not a valid preflight for resource existence
+  - **Do NOT enable public access.** The bucket stays private and images are served through the Worker; a public bucket would bypass the content-type and `nosniff` controls that prevent a stored file being interpreted as HTML
 - [x] **Confirm the Worker name** — `demo-store` does not exist yet; no collision
 
 > **Local development note (E-27).** The `database_id` keys the **local** SQLite file as well as addressing the remote database, so replacing the placeholder **reset the local database** with no warning. It was restored with two commands, both fully regenerable from the repository:
