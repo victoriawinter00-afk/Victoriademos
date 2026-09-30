@@ -16,14 +16,13 @@
   // rules do NOT apply to workers.dev. D1 is used rather than KV because KV is
   // eventually consistent and a burst could under-count.
   //
-  // >>> BEFORE THE FIRST DEPLOY: run
-  // >>>   npx wrangler d1 create demo-store-payments-db
-  // >>> and replace the placeholder id below with the real one.
+  // The binding name is RATE_LIMIT_DB — it must match what src/index.js reads.
+  // A separate database from the store's, so Worker B's blast radius stays small.
   "d1_databases": [
     {
       "binding": "RATE_LIMIT_DB",
       "database_name": "demo-store-payments-db",
-      "database_id": "00000000-0000-4000-8000-000000000000"
+      "database_id": "a812ca2f-9861-49fb-b1ce-cccc6252cd2f"
     }
   ],
 
