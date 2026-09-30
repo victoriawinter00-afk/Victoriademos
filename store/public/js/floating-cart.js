@@ -36,6 +36,7 @@
     var statusEl = null;
     var actionsLink = null;
     var grid = null;
+    var headerCartLink = null;
 
     var rowCount = 0;
     var removeButtons = [];
@@ -78,6 +79,38 @@
                 "View cart, " + count + (count === 1 ? " item" : " items")
             );
         }
+    }
+
+    /* The header's own cart link is the page's permanent affordance. It scrolls
+       away — that is the whole reason this button exists — so the button appears
+       only once the header link has left the viewport. That keeps exactly one
+       cart control reachable at every scroll position, and at the top of the
+       page it keeps the button out of the band where the wrapped filter row can
+       come to rest under it. */
+    function headerCartVisible() {
+        if (!headerCartLink) return false;
+        var rect = headerCartLink.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) return false;
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+    }
+
+    /* The gate must not be able to hide the button forever. On a page too short
+       to scroll the header link away, the link is permanently on screen, so the
+       button is a harmless extra affordance and is not gated. */
+    function headerLinkCanLeaveViewport() {
+        if (!headerCartLink) return false;
+        var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        var linkBottom = headerCartLink.getBoundingClientRect().bottom + window.scrollY;
+        return maxScroll > linkBottom;
+    }
+
+    /* Cheap, scroll-safe: it reads geometry only, never the product API. */
+    function syncFab() {
+        if (!fab) return;
+        var count = currentCount();
+        var panelShown = Boolean(panel && !panel.hidden);
+        var gated = headerLinkCanLeaveViewport() && headerCartVisible();
+        setFab(count > 0 && !panelShown && !gated);
     }
 
     function buildPanelRow(row) {
@@ -175,7 +208,7 @@
 
                 if (rows.length === 0) {
                     hidePanel();
-                    setFab(currentCount() > 0);
+                    syncFab();
                     return;
                 }
 
@@ -217,7 +250,7 @@
                 hidePanel();
                 /* No trustworthy prices: never show a wrong total, but do give
                    the customer a way to the cart. */
-                setFab(currentCount() > 0);
+                syncFab();
             });
     }
 
@@ -238,7 +271,7 @@
         }
 
         hidePanel();
-        setFab(true);
+        syncFab();
     }
 
     function onPanelRemoveClick(event) {
@@ -271,6 +304,7 @@
 
         panel = document.getElementById("floating-cart");
         fab = document.getElementById("view-cart-fab");
+        headerCartLink = document.querySelector('.store-nav a[href="/cart"]');
 
         if (panel) {
             itemsList = document.getElementById("floating-cart-items");
@@ -297,6 +331,19 @@
                 update();
             }, 150);
         });
+
+        /* The button's visibility depends on whether the header link is still on
+           screen, so re-check on scroll. Throttled to one geometry read per
+           frame; it never fetches. */
+        var scrollScheduled = false;
+        window.addEventListener("scroll", function () {
+            if (scrollScheduled) return;
+            scrollScheduled = true;
+            window.requestAnimationFrame(function () {
+                scrollScheduled = false;
+                syncFab();
+            });
+        }, { passive: true });
 
         /* Silent on load: nothing is announced until the customer acts, and no
            affordance appears when the cart is empty. */
