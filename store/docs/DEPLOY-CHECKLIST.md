@@ -23,12 +23,18 @@
 
 ## Pre-deploy — Cloudflare resources
 
-- [ ] **Create the D1 database:** `wrangler d1 create demo-store-db`
-- [ ] **Copy the real `database_id`** into `wrangler.jsonc`, replacing the placeholder
-- [ ] **Apply the schema remotely:** `wrangler d1 execute demo-store-db --remote --file=./schema.sql`
-- [ ] **Seed the catalog remotely** — 50 demo products from `docs/demo-catalog.csv`
-- [ ] **Create the R2 bucket** for product images
-- [ ] **Confirm the Worker name** (`demo-store`) and that deploying will not collide with an existing Worker
+- [x] **Create the D1 database** — done 2026-09-30. `demo-store-db`, id `0aaab4bb-2f7b-42ae-ab90-73581cca1567`, region WNAM
+- [x] **Copy the real `database_id`** into `wrangler.jsonc` — done
+- [x] **Apply the schema remotely** — done, 7 tables
+- [x] **Seed the catalog remotely** — done, 50 products (25 physical / 15 digital / 10 service), 1 deliberately out of stock
+- [ ] **Create the R2 bucket** `demo-store-images` — **blocking the deploy.** Confirmed empirically, not assumed: `wrangler deploy` fails with `R2 bucket 'demo-store-images' not found [code: 10085]`. A `--dry-run` **passes** and does not catch this, so the dry-run is not a valid preflight for resource existence
+- [x] **Confirm the Worker name** — `demo-store` does not exist yet; no collision
+
+> **Local development note (E-27).** The `database_id` keys the **local** SQLite file as well as addressing the remote database, so replacing the placeholder **reset the local database** with no warning. It was restored with two commands, both fully regenerable from the repository:
+> ```
+> npx wrangler d1 execute demo-store-db --local --file=./schema.sql
+> npm run db:seed
+> ```
 
 ## Pre-deploy — Cloudflare Access
 

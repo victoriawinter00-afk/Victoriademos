@@ -44,9 +44,12 @@
     {
       "binding": "DB",
       "database_name": "demo-store-db",
-      // PLACEHOLDER, local development only. No remote D1 database exists.
-      // Replace with the real id from `wrangler d1 create demo-store-db` at deploy time.
-      "database_id": "f3b1c2d4-5e6a-4b7c-8d9e-0a1b2c3d4e5f"
+      // Real database, created 2026-09-30 in region WNAM.
+      // Local development uses a local SQLite file; the id also keys that local
+      // file, so changing it here resets the local database. Re-seed locally with
+      //   npx wrangler d1 execute demo-store-db --local --file=./schema.sql
+      //   npm run db:seed
+      "database_id": "0aaab4bb-2f7b-42ae-ab90-73581cca1567"
     }
   ],
 
