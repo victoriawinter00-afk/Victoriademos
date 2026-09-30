@@ -64,7 +64,33 @@
 - [ ] `git status` clean
 - [ ] No secret in any tracked file — **re-scan history, not just the working tree**
 - [ ] `.dev.vars` still ignored and untracked
-- [ ] The placeholder `database_id` is genuinely replaced, not just commented
+- [x] The placeholder `database_id` is genuinely replaced — done, real id in `wrangler.jsonc`
+
+---
+
+## DEPLOYED — 2026-09-30
+
+**Version ID `27d4c132-216a-48d6-b511-370822452446`** · route `store.victoriawinter00.com` (custom domain) · D1 `demo-store-images` / `0aaab4bb-2f7b-42ae-ab90-73581cca1567`
+
+**Verified after deploy (mechanism: live HTTPS from outside Cloudflare):**
+
+| Check | Result |
+|---|---|
+| DNS | resolves — Cloudflare anycast (`104.21.12.195`, `172.67.195.161`) |
+| `/api/products` | **200**, **50 products** — served from the **remote** D1, not local |
+| `/` storefront | **200**, title `Demo Store — Products`, filters present, demo notice present |
+| `/product/demo-physical-01` | **200** |
+| `/cart` demo notice | present, wording matches the approved session copy |
+| `/images/unknown-key.png` | **404** — key-shape validation rejecting it |
+| `/api/admin/products` — no token | **404** (fail-closed, as designed) |
+| `/api/admin/products` — **forged header** | **404** ← the guard rejecting a hand-typed header |
+| `/api/checkout` | **500**, `error code: 1101` — **expected**. No `STRIPE_SECRET_KEY` is set remotely yet; fixed at Stage 5 |
+
+**`custom_domain: true` worked** with this session's scopes. The one genuine unknown from the deploy-prep task is now answered — `workers_routes (write)` was sufficient, and no manual DNS step was needed.
+
+**Correction — `workers.dev` is NOT a bypass here.** Earlier guidance said a custom domain leaves the `workers.dev` hostname live, so Access alone could be bypassed and the JWT guard was the real control. **Measured, that is wrong for this deployment:** `demo-store.victoria00business00.workers.dev` returns Cloudflare's **`error code: 1042`** page — the Worker is **not provisioned there at all**. The defence-in-depth reasoning was sound as a principle, and the guard is still what rejects a forged header, but **there is no `workers.dev` path to reach this Worker.** Do not repeat the earlier claim as fact.
+
+**Still expected to fail, and correctly so:** admin is unreachable until the real Access values replace the placeholders — that is the fail-closed design, not a fault.
 
 ---
 
