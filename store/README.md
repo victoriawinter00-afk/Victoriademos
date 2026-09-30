@@ -299,9 +299,13 @@ confirmed.
 follows the scroll. It is **not a second cart**: it reads and writes only through
 `window.StoreCart` (the one `store-cart` key) and prices lines from the same
 `GET /api/products` the cart page uses, so the two cannot disagree. It is revealed
-only when the script **measures** enough free space beside the rendered grid
-(`documentElement.clientWidth − grid.getBoundingClientRect().right ≥ panel width +
-2 × 24px`); below that it stays absent and `/cart` is the only cart. It is never
+only when **two independent gates** pass: a viewport floor
+(`documentElement.clientWidth ≥ 1200` — below that the storefront is in its
+tablet/mobile range and `/cart` is the cart) **and** a measured check that the free
+space beside the rendered grid fits the panel
+(`clientWidth − grid.getBoundingClientRect().right ≥ panel width + 2 × 24px`; in
+this layout the measured gate is the stricter of the two). Below either gate it
+stays absent and `/cart` is the only cart. It is never
 loaded on `/cart`. The panel starts `hidden` (so it is absent without JavaScript),
 stays hidden while the cart is empty, and its live region (`#floating-cart-status`)
 is empty on load and written only on a user-initiated change.

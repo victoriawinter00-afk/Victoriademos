@@ -19,6 +19,12 @@
 
     var PANEL_WIDTH = 260; /* must match .floating-cart width in store.css */
     var EDGE_GAP = 24;     /* viewport margin + required gap from the grid */
+    /* Two independent gates. This one is a coarse floor: below 1200px the
+       storefront is in its tablet/mobile range (declared breakpoints at 768 and
+       480), where a second cart in the corner is intrusive and the cart page is
+       the cart. The measured gate below is the precise one and is stricter in
+       this layout; both must pass. */
+    var MIN_VIEWPORT_WIDTH = 1200;
 
     var panel = null;
     var itemsList = null;
@@ -43,11 +49,14 @@
         }
     }
 
-    /* True only when the real, measured free space beside the grid can hold the
-       panel with a matching gap on both sides. */
+    /* True only when the viewport is wide enough AND the real, measured free
+       space beside the grid can hold the panel with a matching gap on both
+       sides. */
     function hasRoom() {
         if (!grid) return false;
-        var free = document.documentElement.clientWidth - grid.getBoundingClientRect().right;
+        var viewportWidth = document.documentElement.clientWidth;
+        if (viewportWidth < MIN_VIEWPORT_WIDTH) return false;
+        var free = viewportWidth - grid.getBoundingClientRect().right;
         return free >= PANEL_WIDTH + EDGE_GAP * 2;
     }
 
