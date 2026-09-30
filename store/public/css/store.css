@@ -964,6 +964,62 @@ body.dark-mode .floating-cart {
     background-color: rgba(27, 36, 49, 0.96);
 }
 
+/* ------------------------------
+   FLOATING "VIEW CART" BUTTON
+
+   Shown by floating-cart.js only when the cart is non-empty AND the panel has
+   no room at this width (on the list page), or on a page with no panel at all.
+   It and the panel are mutually exclusive by construction. Bottom-right fixed:
+   on a phone a right-edge tab would sit over the text being read, and
+   bottom-right is both the convention and the thumb-reachable position. It is a
+   real link, so it navigates with no script of its own.
+   ------------------------------- */
+.view-cart-fab {
+    position: fixed;
+    right: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.65rem 1.15rem;
+    border: 1px solid var(--color-accent-dark);
+    border-radius: var(--border-radius-xl);
+    background: var(--color-accent);
+    color: #1d2d2a;
+    font-family: var(--font-family);
+    font-size: var(--font-size-medium);
+    font-weight: 700;
+    box-shadow: var(--box-shadow-soft);
+    transition: background-color 160ms ease;
+}
+
+.view-cart-fab:hover,
+.view-cart-fab:focus-visible {
+    background: var(--color-primary);
+}
+
+body.dark-mode .view-cart-fab {
+    color: #0b1a17;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .view-cart-fab {
+        transition: none;
+    }
+}
+
+/* Reserved bottom space on the pages that carry the floating button, so at the
+   end of the document it sits in empty space and never covers the footer, the
+   disclaimer, or the "return to top" control. */
+body[data-page="list"] .disclaimer-footer,
+body[data-page="detail"] .disclaimer-footer {
+    padding-bottom: 6rem;
+}
+
 .catalog-controls {
     display: flex;
     flex-wrap: wrap;

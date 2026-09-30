@@ -310,6 +310,17 @@ loaded on `/cart`. The panel starts `hidden` (so it is absent without JavaScript
 stays hidden while the cart is empty, and its live region (`#floating-cart-status`)
 is empty on load and written only on a user-initiated change.
 
+**Floating "view cart" button.** The same script also owns a fixed bottom-right
+`<a href="/cart" class="view-cart-fab">` on the list and product pages. A single
+decision drives both affordances: an empty cart hides both; where the panel has
+measured room the panel shows and the button does not; everywhere else the button
+shows and the panel does not. They are **mutually exclusive by construction**, and
+the button reuses the existing `[data-cart-count]` span that `cart.js` maintains, so
+it adds no second source of truth. It is a real link (≥44×44 CSS px, keyboard
+reachable, visible focus ring, no focus trap), so it reaches `/cart` with no script
+of its own. The pages that carry it reserve footer space so it cannot permanently
+cover the footer, the disclaimer, or the return-to-top control.
+
 **Page-foot copy and return-to-top.** `index.html`'s footer carries expanded
 demonstration copy, a visible disclaimer, and a `Return to top` button. That
 control is a **new component**, not a port: the consulting site has no

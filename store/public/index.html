@@ -90,6 +90,11 @@
              can be suppressed, and this must still announce when the cart empties. -->
         <p class="visually-hidden" id="floating-cart-status" role="status" aria-live="polite"></p>
 
+        <!-- Floating "view cart" button. A real link, shown by floating-cart.js
+             when the cart is non-empty AND the panel has no room for this width,
+             so the panel and the button are never both visible. Starts hidden. -->
+        <a class="view-cart-fab" id="view-cart-fab" href="/cart" hidden>View cart (<span data-cart-count>0</span>)</a>
+
         <footer class="disclaimer-footer">
             <div class="container">
                 <div class="footer-about">

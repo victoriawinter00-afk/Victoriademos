@@ -68,10 +68,16 @@
                 <p><strong>Demo Store</strong> — a demonstration storefront. No payment is taken and no orders are placed on this page.</p>
             </div>
         </footer>
+
+        <!-- Floating "view cart" button. A real link, shown by floating-cart.js
+             when the cart is non-empty. There is no panel on this page, so the
+             button is the affordance here at every width. Starts hidden. -->
+        <a class="view-cart-fab" id="view-cart-fab" href="/cart" hidden>View cart (<span data-cart-count>0</span>)</a>
     </main>
 
     <script src="/js/accessibility.js" defer></script>
     <script src="/js/cart.js" defer></script>
     <script src="/js/store.js" defer></script>
+    <script src="/js/floating-cart.js" defer></script>
 </body>
 </html>

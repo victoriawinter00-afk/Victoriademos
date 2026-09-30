@@ -1,17 +1,21 @@
-/* Floating cart for the storefront list page.
+/* Floating cart affordances for the storefront.
  *
- * It is NOT a second cart. It reads and writes ONLY through window.StoreCart
- * (cart.js), which owns the single `store-cart` localStorage key, and it prices
- * the lines from the same GET /api/products the cart page uses. There is no
- * separate state, so this panel and /cart cannot disagree.
+ * Two affordances, ONE owner, one decision, so they can never both show:
  *
- * Responsive gating is MEASURED, not guessed: the panel is revealed only when
- * the free space to the right of the rendered product grid actually fits it.
- * Below that, it stays absent and /cart remains the only cart. The element
- * starts `hidden`, so it also never appears without JavaScript.
+ *   - the PANEL (index.html only), fixed to the right of the product grid, used
+ *     where it has genuine measured room;
+ *   - the BUTTON (this page and product.html), a fixed bottom-right link, used
+ *     everywhere else.
  *
- * The live region (#floating-cart-status) is empty on load and written ONLY on
- * a user-initiated change, so a screen reader is not interrupted when the page
+ * Cart state is NOT owned here. Everything reads and writes window.StoreCart
+ * (cart.js), which owns the single `store-cart` localStorage key, and the count
+ * is the existing `[data-cart-count]` span that cart.js already maintains — so
+ * there is no second source of truth and the button, the panel and /cart cannot
+ * disagree. The button is a real <a href="/cart">, so it navigates without any
+ * script of its own.
+ *
+ * The live region (#floating-cart-status) is empty on load and written only on a
+ * user-initiated change, so a screen reader is not interrupted when the page
  * opens.
  */
 (function () {
@@ -19,14 +23,14 @@
 
     var PANEL_WIDTH = 260; /* must match .floating-cart width in store.css */
     var EDGE_GAP = 24;     /* viewport margin + required gap from the grid */
-    /* Two independent gates. This one is a coarse floor: below 1200px the
-       storefront is in its tablet/mobile range (declared breakpoints at 768 and
-       480), where a second cart in the corner is intrusive and the cart page is
-       the cart. The measured gate below is the precise one and is stricter in
-       this layout; both must pass. */
+    /* A coarse floor for the panel only: below 1200px the storefront is in its
+       tablet/mobile range (breakpoints at 768 and 480), where a corner panel is
+       intrusive and the button is the right affordance. The measured gate below
+       is the precise one and is stricter in this layout; both must pass. */
     var MIN_VIEWPORT_WIDTH = 1200;
 
     var panel = null;
+    var fab = null;
     var itemsList = null;
     var totalEl = null;
     var statusEl = null;
@@ -36,6 +40,7 @@
     var rowCount = 0;
     var removeButtons = [];
     var pendingFocusIndex = null;
+    var panelRequest = 0;
 
     function formatPrice(cents, currency) {
         if (cents === 0) return "Free";
@@ -49,24 +54,33 @@
         }
     }
 
-    /* True only when the viewport is wide enough AND the real, measured free
-       space beside the grid can hold the panel with a matching gap on both
-       sides. */
+    function currentCount() {
+        return window.StoreCart ? window.StoreCart.count() : 0;
+    }
+
+    /* True only when the viewport is wide enough AND the measured free space
+       beside the rendered grid can hold the panel with a matching gap. */
     function hasRoom() {
-        if (!grid) return false;
+        if (!panel || !grid) return false;
         var viewportWidth = document.documentElement.clientWidth;
         if (viewportWidth < MIN_VIEWPORT_WIDTH) return false;
         var free = viewportWidth - grid.getBoundingClientRect().right;
         return free >= PANEL_WIDTH + EDGE_GAP * 2;
     }
 
-    function applyVisibility() {
-        if (!panel) return;
-        panel.hidden = !(rowCount > 0 && hasRoom());
-        /* The stored cart count only matters through the shared module. */
+    function setFab(visible) {
+        if (!fab) return;
+        var count = currentCount();
+        fab.hidden = !visible;
+        if (visible) {
+            fab.setAttribute(
+                "aria-label",
+                "View cart, " + count + (count === 1 ? " item" : " items")
+            );
+        }
     }
 
-    function buildRow(row) {
+    function buildPanelRow(row) {
         var li = document.createElement("li");
         li.className = "floating-cart__item";
 
@@ -99,80 +113,24 @@
         return li;
     }
 
-    function draw(bySlug, announceText) {
-        var cart = window.StoreCart;
-        if (!cart) return;
-
-        var stored = cart.read();
-        var rows = [];
-        var kept = [];
-        var dropped = 0;
-        var totalCents = 0;
-        var currency = "usd";
-
-        stored.items.forEach(function (item) {
-            var product = bySlug[item.slug];
-            if (!product) {
-                dropped += 1;
-                return;
-            }
-            kept.push(item);
-            rows.push({ product: product, quantity: item.quantity });
-            totalCents += product.price_cents * item.quantity;
-            currency = product.currency || "usd";
-        });
-
-        /* Mirror the cart page: an item that no longer exists is dropped from
-           the one shared store, never merely hidden here. */
-        if (dropped > 0) {
-            cart.write(kept);
-            cart.refreshCount();
-        }
-
+    function hidePanel() {
+        if (!panel) return;
+        panel.hidden = true;
         itemsList.textContent = "";
         removeButtons = [];
-        var fragment = document.createDocumentFragment();
-        rows.forEach(function (row) {
-            var node = buildRow(row);
-            removeButtons.push(node.querySelector("[data-remove]"));
-            fragment.appendChild(node);
-        });
-        itemsList.appendChild(fragment);
-
-        totalEl.textContent = formatPrice(totalCents, currency);
-        rowCount = rows.length;
-        applyVisibility();
-
-        if (pendingFocusIndex !== null) {
-            var target = removeButtons[Math.min(pendingFocusIndex, removeButtons.length - 1)];
-            if (target) target.focus();
-            else if (actionsLink) actionsLink.focus();
-            pendingFocusIndex = null;
-        }
-
-        var message = announceText || "";
-        if (dropped > 0) {
-            var note = dropped === 1
-                ? "1 item was removed because it is no longer available."
-                : dropped + " items were removed because they are no longer available.";
-            message = [message, note].filter(Boolean).join(" ");
-        }
-        if (message) {
-            statusEl.textContent = message + " Cart total " + totalEl.textContent + ".";
-        }
+        rowCount = 0;
     }
 
-    /* Prices and names come from the same endpoint the cart page reads, so the
-       panel can never show a figure the cart page would not. */
-    function render(announceText) {
+    /* Draws the panel. On any failure it yields to the button rather than
+       leaving the customer with no way to reach the cart. */
+    function drawPanel(announceText) {
         var cart = window.StoreCart;
         if (!cart || !panel) return;
 
+        var request = ++panelRequest;
         if (cart.read().items.length === 0) {
-            itemsList.textContent = "";
-            removeButtons = [];
-            rowCount = 0;
-            applyVisibility();
+            hidePanel();
+            setFab(false);
             return;
         }
 
@@ -182,20 +140,108 @@
                 return response.json();
             })
             .then(function (data) {
+                if (request !== panelRequest) return;
+
                 var bySlug = Object.create(null);
                 ((data && data.products) || []).forEach(function (product) {
                     bySlug[product.slug] = product;
                 });
-                draw(bySlug, announceText);
+
+                var stored = cart.read();
+                var rows = [];
+                var kept = [];
+                var dropped = 0;
+                var totalCents = 0;
+                var currency = "usd";
+
+                stored.items.forEach(function (item) {
+                    var product = bySlug[item.slug];
+                    if (!product) {
+                        dropped += 1;
+                        return;
+                    }
+                    kept.push(item);
+                    rows.push({ product: product, quantity: item.quantity });
+                    totalCents += product.price_cents * item.quantity;
+                    currency = product.currency || "usd";
+                });
+
+                /* Mirror the cart page: an item that no longer exists is dropped
+                   from the one shared store, never merely hidden here. */
+                if (dropped > 0) {
+                    cart.write(kept);
+                    cart.refreshCount();
+                }
+
+                if (rows.length === 0) {
+                    hidePanel();
+                    setFab(currentCount() > 0);
+                    return;
+                }
+
+                itemsList.textContent = "";
+                removeButtons = [];
+                var fragment = document.createDocumentFragment();
+                rows.forEach(function (row) {
+                    var node = buildPanelRow(row);
+                    removeButtons.push(node.querySelector("[data-remove]"));
+                    fragment.appendChild(node);
+                });
+                itemsList.appendChild(fragment);
+
+                totalEl.textContent = formatPrice(totalCents, currency);
+                rowCount = rows.length;
+                panel.hidden = false;
+                setFab(false);
+
+                if (pendingFocusIndex !== null) {
+                    var target = removeButtons[Math.min(pendingFocusIndex, removeButtons.length - 1)];
+                    if (target) target.focus();
+                    else if (actionsLink) actionsLink.focus();
+                    pendingFocusIndex = null;
+                }
+
+                var message = announceText || "";
+                if (dropped > 0) {
+                    var note = dropped === 1
+                        ? "1 item was removed because it is no longer available."
+                        : dropped + " items were removed because they are no longer available.";
+                    message = [message, note].filter(Boolean).join(" ");
+                }
+                if (message) {
+                    statusEl.textContent = message + " Cart total " + totalEl.textContent + ".";
+                }
             })
             .catch(function () {
-                /* No trustworthy prices: stay hidden rather than show a wrong total. */
-                rowCount = 0;
-                applyVisibility();
+                if (request !== panelRequest) return;
+                hidePanel();
+                /* No trustworthy prices: never show a wrong total, but do give
+                   the customer a way to the cart. */
+                setFab(currentCount() > 0);
             });
     }
 
-    function onRemoveClick(event) {
+    /* The single decision. Exactly one affordance is visible, or neither. */
+    function update(announceText) {
+        var count = currentCount();
+
+        if (count === 0) {
+            hidePanel();
+            setFab(false);
+            return;
+        }
+
+        if (hasRoom()) {
+            setFab(false);
+            drawPanel(announceText);
+            return;
+        }
+
+        hidePanel();
+        setFab(true);
+    }
+
+    function onPanelRemoveClick(event) {
         var button = event.target.closest ? event.target.closest("[data-remove]") : null;
         if (!button) return;
         var cart = window.StoreCart;
@@ -204,40 +250,57 @@
 
         pendingFocusIndex = Array.prototype.indexOf.call(removeButtons, button);
         cart.remove(slug);
-        render("Item removed.");
+        update("Item removed.");
     }
 
-    /* The grid's own click handler (store.js) adds to the cart first, then the
-       event bubbles here, so this re-reads the already-updated cart. */
-    function onCardAddClick(event) {
-        var button = event.target.closest ? event.target.closest("[data-card-add]") : null;
-        if (!button || button.disabled) return;
-        render("Cart updated.");
+    /* store.js adds to the cart during this same click. The deferral means we
+       never depend on which listener ran first. */
+    function onDocumentClick(event) {
+        var target = event.target;
+        if (!target || !target.closest) return;
+        var control = target.closest("[data-card-add]") || target.closest("#detail-add");
+        if (!control || control.disabled) return;
+        window.setTimeout(function () {
+            update("Cart updated.");
+        }, 0);
     }
 
     function init() {
-        if (document.body.getAttribute("data-page") !== "list") return;
+        var page = document.body.getAttribute("data-page");
+        if (page !== "list" && page !== "detail") return;
 
         panel = document.getElementById("floating-cart");
-        if (!panel) return;
-        itemsList = document.getElementById("floating-cart-items");
-        totalEl = document.getElementById("floating-cart-total");
-        statusEl = document.getElementById("floating-cart-status");
-        actionsLink = panel.querySelector(".floating-cart__actions a");
-        grid = document.getElementById("product-list");
-        if (!itemsList || !totalEl || !statusEl || !grid) return;
+        fab = document.getElementById("view-cart-fab");
 
-        itemsList.addEventListener("click", onRemoveClick);
-        document.addEventListener("click", onCardAddClick);
+        if (panel) {
+            itemsList = document.getElementById("floating-cart-items");
+            totalEl = document.getElementById("floating-cart-total");
+            statusEl = document.getElementById("floating-cart-status");
+            actionsLink = panel.querySelector(".floating-cart__actions a");
+            grid = document.getElementById("product-list");
+            if (!itemsList || !totalEl || !statusEl) {
+                panel = null;
+            }
+        }
+
+        if (!panel && !fab) return;
+
+        if (panel) {
+            itemsList.addEventListener("click", onPanelRemoveClick);
+        }
+        document.addEventListener("click", onDocumentClick);
 
         var resizeTimer = null;
         window.addEventListener("resize", function () {
             window.clearTimeout(resizeTimer);
-            resizeTimer = window.setTimeout(applyVisibility, 150);
+            resizeTimer = window.setTimeout(function () {
+                update();
+            }, 150);
         });
 
-        /* Initial render is silent: no announcement on page load. */
-        render();
+        /* Silent on load: nothing is announced until the customer acts, and no
+           affordance appears when the cart is empty. */
+        update();
     }
 
     document.addEventListener("DOMContentLoaded", init);
