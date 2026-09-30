@@ -19,6 +19,13 @@
     --color-background: #fffafb;
     --color-focus: #bde9f8;
     --color-error: #9d2f2f;
+    /* Ink for the category glyphs. It deliberately does NOT flip with the theme:
+       .product-card__media and .detail-media keep a LIGHT rgba gradient in every
+       mode (dark mode just composites it over the darker card), which is also why
+       .product-card__media-label has always used a dark literal here. A themed
+       `currentColor` glyph would turn near-white in dark mode and disappear on
+       the light-blue end of that gradient. */
+    --color-media-ink: #1d2d2a;
     --surface-soft: rgba(255, 255, 255, 0.56);
     --surface-strong: rgba(255, 255, 255, 0.84);
     --font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -337,6 +344,27 @@ p { margin-bottom: 1rem; }
 
 /* Uploaded imagery fills the media block; same-origin only, so nothing here
    introduces an external request. */
+/* Category glyph: the inline SVG drawn into a media block that has no
+   photograph (see buildTypeGlyph in public/js/store.js). Absolutely positioned
+   so it fills the block without affecting layout, and decorative — the type is
+   also printed in .product-card__media-label beside it. */
+.product-card__glyph,
+.detail-glyph {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 14% 16%;
+    box-sizing: border-box;
+    color: var(--color-media-ink);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
 .product-card__image,
 .detail-image {
     display: block;

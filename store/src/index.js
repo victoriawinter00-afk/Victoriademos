@@ -81,10 +81,24 @@ const CHECKOUT_SESSION_MINUTES = 30;
    Demo clarity on the payment page.
    Stripe renders `custom_text` as PLAIN TEXT, so these carry no markdown.
 --------------------------------------------------------------------------- */
-const CHECKOUT_SUBMIT_NOTICE =
+/* ---------------------------------------------------------------------------
+   DEMO CONTENT — the notices Stripe prints on the payment page. A client build
+   strips or replaces this whole block.
+
+   The second half is the operator's approved copy (docs/COPY-DRAFTS.md), condensed
+   for the moment of purchase. The full piece lives in the storefront footer, where
+   a reader has time for it; this is the one-line pointer to it.
+--------------------------------------------------------------------------- */
+const CHECKOUT_TEST_CARD_NOTICE =
   "This is a demonstration store. Use test card 4242 4242 4242 4242 with any " +
   "future date and any 3-digit code. Do not enter a real card — a real card " +
   "will be declined.";
+const CHECKOUT_PAYMENT_METHODS_NOTE =
+  "Card payments work immediately. Everything else — wallets, buy-now-pay-later, " +
+  "bank transfers — takes longer to set up, and some of it changes who carries " +
+  "dispute risk. I start every store with card only. Full detail on the store page.";
+/* The test-card instruction stays FIRST: it is what makes the demo usable. */
+const CHECKOUT_SUBMIT_NOTICE = `${CHECKOUT_TEST_CARD_NOTICE} ${CHECKOUT_PAYMENT_METHODS_NOTE}`;
 const CHECKOUT_AFTER_SUBMIT_NOTICE =
   "Demonstration only. No goods ship, nothing is charged, and this is a test environment.";
 

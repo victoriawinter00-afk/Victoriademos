@@ -336,11 +336,22 @@ tags with **absolute** URLs, pointing at `public/og-image-store.png` — a real
 template is `store-og-template.html` at the repository root, deliberately outside
 `public/` so it is not served.
 
-**Missing payment key.** `POST /api/checkout` returns `503 { "error":
+**Missing payments proxy.** `POST /api/checkout` returns `503 { "error":
 "not_available", "message": … }` stating plainly that this is a demonstration store
-that cannot take payment, before any database work, when `STRIPE_SECRET_KEY` is
-unset. A route-level `try/catch` additionally turns any unexpected exception into a
-structured `500` JSON body, so a platform error code (1101) is never surfaced.
+that cannot take payment, before any database work, when `PAYMENTS_PROXY_URL` or
+`PROXY_SECRET` is unset. A route-level `try/catch` additionally turns any unexpected
+exception into a structured `500` JSON body, so a platform error code (1101) is never
+surfaced.
+
+**Category glyphs.** When a product has no photograph, its media block is filled with
+a stroke line drawing for its type — garment, download arrow, calendar. The SVG is
+built **inline** in `public/js/store.js` (`buildTypeGlyph`), never fetched:
+`/images/*` is in `run_worker_first`, so a file under `public/images/` would be
+shadowed by the Worker and 404. The ink is `--color-media-ink`, which deliberately
+does **not** flip with the theme — the media gradient stays light in every mode (dark
+mode just composites it over the darker card), which is why the glyph is not
+`currentColor`. The drawing is decorative and stays out of the accessibility tree;
+the type is also printed as visible text on the card.
 
 ## Order lookup
 

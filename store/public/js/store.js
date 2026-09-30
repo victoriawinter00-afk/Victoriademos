@@ -32,6 +32,74 @@
         return node;
     }
 
+    /* ---- Category glyphs -------------------------------------------------
+       When a product has no photograph the media block is filled with a line
+       drawing for its type instead of being left empty.
+
+       INLINE SVG ON PURPOSE. `/images/*` is in `run_worker_first`, so a file
+       under public/images/ would be shadowed by the Worker and 404. Inline also
+       means no extra request and no asset path to keep in sync.
+
+       The drawing is DECORATIVE. It sits inside a block that is already
+       aria-hidden, and the type is also printed as visible text on the same card
+       ("Physical" / "Digital" / "Service"), so it conveys nothing to a sighted
+       visitor that a screen-reader user misses. */
+    var SVG_NS = "http://www.w3.org/2000/svg";
+
+    /* Stroke line art on a 320x240 canvas: garment, download arrow, calendar. */
+    var GLYPHS = {
+        physical: {
+            paths: [
+                "M96 54 L56 92 L96 120 L96 194 L224 194 L224 120 L264 92 L224 54 " +
+                    "C214 76 186 86 160 86 C134 86 106 76 96 54 Z"
+            ]
+        },
+        digital: {
+            paths: ["M160 62 V150", "M122 114 L160 152 L198 114", "M104 182 V200 H216 V182"]
+        },
+        service: {
+            rects: [{ x: 100, y: 92, width: 120, height: 104, rx: 12 }],
+            paths: ["M100 126 H220", "M128 72 V100", "M192 72 V100"],
+            circles: [[132, 150, 4], [160, 150, 4], [188, 150, 4], [132, 174, 4]]
+        }
+    };
+
+    function buildTypeGlyph(type, className) {
+        var spec = GLYPHS[type];
+        if (!spec) return null;
+
+        var svg = document.createElementNS(SVG_NS, "svg");
+        svg.setAttribute("class", className);
+        svg.setAttribute("viewBox", "0 0 320 240");
+        svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("focusable", "false");
+
+        (spec.rects || []).forEach(function (r) {
+            var rect = document.createElementNS(SVG_NS, "rect");
+            rect.setAttribute("x", r.x);
+            rect.setAttribute("y", r.y);
+            rect.setAttribute("width", r.width);
+            rect.setAttribute("height", r.height);
+            rect.setAttribute("rx", r.rx);
+            svg.appendChild(rect);
+        });
+        (spec.paths || []).forEach(function (d) {
+            var path = document.createElementNS(SVG_NS, "path");
+            path.setAttribute("d", d);
+            svg.appendChild(path);
+        });
+        (spec.circles || []).forEach(function (c) {
+            var circle = document.createElementNS(SVG_NS, "circle");
+            circle.setAttribute("cx", c[0]);
+            circle.setAttribute("cy", c[1]);
+            circle.setAttribute("r", c[2]);
+            svg.appendChild(circle);
+        });
+
+        return svg;
+    }
+
     function buildBadge(product) {
         var outOfStock = product.type === "physical" && !product.in_stock;
         return el("span", outOfStock ? "badge badge--out" : "badge", availabilityLabel(product));
@@ -53,8 +121,11 @@
             image.decoding = "async";
             media.appendChild(image);
         } else {
-            // No image: the block is decorative, so keep it out of the a11y tree.
+            // No image: the block is decorative, so keep it out of the a11y tree,
+            // and fill it with the glyph for this product's type.
             media.setAttribute("aria-hidden", "true");
+            var cardGlyph = buildTypeGlyph(product.type, "product-card__glyph");
+            if (cardGlyph) media.appendChild(cardGlyph);
         }
         var mediaLabel = el(
             "span",
@@ -322,6 +393,8 @@
                 if (mediaBox) {
                     var previous = mediaBox.querySelector("img");
                     if (previous) previous.remove();
+                    var previousGlyph = mediaBox.querySelector(".detail-glyph");
+                    if (previousGlyph) previousGlyph.remove();
                     if (product.image_key) {
                         mediaBox.removeAttribute("aria-hidden");
                         var detailImage = el("img", "detail-image");
@@ -331,6 +404,8 @@
                         mediaBox.insertBefore(detailImage, mediaLabel);
                     } else {
                         mediaBox.setAttribute("aria-hidden", "true");
+                        var detailGlyph = buildTypeGlyph(product.type, "detail-glyph");
+                        if (detailGlyph) mediaBox.insertBefore(detailGlyph, mediaLabel);
                     }
                 }
 
