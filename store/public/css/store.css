@@ -96,6 +96,15 @@ img { max-width: 100%; display: block; }
 button { background: none; border: none; cursor: pointer; font: inherit; color: inherit; }
 input, textarea, select { font: inherit; }
 
+/* The `hidden` attribute must actually hide. The user-agent `[hidden]` rule is
+   beaten by ANY author `display` declaration — `.product-card { display: flex }`
+   and `.detail-grid { display: grid }` both did exactly this, so state set in
+   JavaScript (`card.hidden = true`) had no visual effect. Nothing in this
+   stylesheet relies on a `hidden` element being displayed. */
+[hidden] {
+    display: none !important;
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -839,6 +848,122 @@ body.dark-mode .cart-item__remove {
 /* ------------------------------
    CATALOG FILTERS
 ------------------------------- */
+/* ------------------------------
+   FLOATING CART (storefront list page only)
+
+   Fixed to the viewport so it follows the scroll, sitting in the otherwise
+   unused space to the right of the product grid. It is ONLY revealed by
+   floating-cart.js, and only when that script MEASURES enough free space beside
+   the grid — there is deliberately no guessed breakpoint here. Starting hidden
+   also means it never appears when JavaScript is unavailable. The panel reads
+   and writes the ONE cart module (`store-cart` key), so it cannot disagree with
+   the cart page.
+   ------------------------------- */
+.floating-cart {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    width: 260px;
+    max-height: min(72vh, 560px);
+    display: flex;
+    flex-direction: column;
+    padding: 0.9rem 1rem 1rem;
+    background: var(--surface-strong);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--box-shadow-soft);
+    z-index: 40;
+}
+
+.floating-cart__title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: var(--spacing-sm);
+}
+
+.floating-cart__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    overflow-y: auto;
+    margin-bottom: var(--spacing-sm);
+}
+
+.floating-cart__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--spacing-sm);
+    align-items: baseline;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.floating-cart__name {
+    grid-column: 1;
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.floating-cart__name a {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+}
+
+.floating-cart__meta {
+    grid-column: 1;
+    margin-bottom: 0;
+    font-size: 0.78rem;
+    opacity: 0.8;
+}
+
+.floating-cart__line {
+    grid-column: 2;
+    text-align: right;
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.floating-cart__remove {
+    grid-column: 2;
+    justify-self: end;
+    margin-top: 0.15rem;
+    min-height: 32px;
+    padding: 2px 4px;
+    font-family: var(--font-family);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-error);
+    text-decoration: underline;
+}
+
+.floating-cart__remove:hover,
+.floating-cart__remove:focus-visible {
+    text-decoration-thickness: 2px;
+}
+
+.floating-cart__total {
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--font-size-medium);
+    font-weight: 600;
+}
+
+.floating-cart__total strong {
+    font-size: var(--font-size-large);
+}
+
+.floating-cart__actions {
+    margin: 0;
+}
+
+body.dark-mode .floating-cart {
+    background-color: rgba(27, 36, 49, 0.96);
+}
+
 .catalog-controls {
     display: flex;
     flex-wrap: wrap;
@@ -990,6 +1115,66 @@ body.dark-mode .filter-toggle[aria-pressed="true"] {
 .disclaimer-footer p {
     margin-bottom: 0.5rem;
     font-size: 0.95rem;
+}
+
+/* Expanded demonstration copy, a plain-language disclaimer, and the
+   return-to-top control at the page foot. The control is a real button (there
+   is no `#top` anchor to link to) and lives only in the footer, so it is never
+   above the fold. Smooth scrolling is handled in return-to-top.js so the
+   prefers-reduced-motion case can be respected explicitly. */
+.footer-about {
+    max-width: 760px;
+    margin: 0 auto var(--spacing-md);
+    text-align: left;
+}
+
+.footer-about h2 {
+    font-size: 1.15rem;
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.footer-about p {
+    font-size: 0.9rem;
+}
+
+.footer-disclaimer {
+    max-width: 760px;
+    margin: 0 auto var(--spacing-md);
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent-dark);
+    border-radius: var(--border-radius-sm);
+    background: rgba(255, 255, 255, 0.6);
+    font-size: 0.95rem;
+}
+
+body.dark-mode .footer-disclaimer {
+    background: rgba(27, 36, 49, 0.9);
+}
+
+.footer-top {
+    margin: 0;
+}
+
+.to-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--color-accent-dark);
+    border-radius: var(--border-radius-xl);
+    background: var(--color-accent);
+    color: #1d2d2a;
+    font-family: var(--font-family);
+    font-size: var(--font-size-medium);
+    font-weight: 700;
+}
+
+.to-top:hover,
+.to-top:focus-visible {
+    background: var(--color-primary);
 }
 
 /* ------------------------------

@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Demo Store — Products</title>
     <meta name="description" content="Demo Store — a demonstration storefront for physical, digital, and service products. No payment is taken here.">
+    <!-- Social preview. Absolute URLs are required: messaging platforms do not
+         resolve relative paths. The image is a real 1200x630 PNG; the declared
+         width/height/type must match the file. -->
+    <meta property="og:title" content="Demo Store — a demonstration storefront">
+    <meta property="og:description" content="A working demonstration storefront for physical, digital, and service products. Nothing is charged and no goods ship.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://store.victoriawinter00.com/">
+    <meta property="og:image" content="https://store.victoriawinter00.com/og-image-store.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Demo Store — a demonstration storefront">
+    <meta name="twitter:description" content="A working demonstration storefront for physical, digital, and service products. Nothing is charged and no goods ship.">
+    <meta name="twitter:image" content="https://store.victoriawinter00.com/og-image-store.png">
     <link rel="stylesheet" href="/css/store.css">
 </head>
 <body data-page="list">
@@ -59,9 +74,32 @@
             </div>
         </section>
 
+        <!-- Floating cart. Fixed to the viewport; revealed by floating-cart.js
+             only when the script MEASURES enough free space beside the grid and
+             the cart is not empty. Starts hidden, so it is absent without
+             JavaScript and on /cart (this file is only loaded here). Its live
+             region is empty on load and written only on a user-initiated
+             change. -->
+        <aside class="floating-cart" id="floating-cart" aria-labelledby="floating-cart-heading" hidden>
+            <h2 class="floating-cart__title" id="floating-cart-heading">Your cart</h2>
+            <ul class="floating-cart__items" id="floating-cart-items"></ul>
+            <p class="floating-cart__total">Total: <strong id="floating-cart-total">—</strong></p>
+            <p class="floating-cart__actions"><a class="btn-back" href="/cart">View cart &amp; checkout</a></p>
+        </aside>
+        <!-- Outside the panel on purpose: a live region inside a hidden element
+             can be suppressed, and this must still announce when the cart empties. -->
+        <p class="visually-hidden" id="floating-cart-status" role="status" aria-live="polite"></p>
+
         <footer class="disclaimer-footer">
             <div class="container">
-                <p><strong>Demo Store</strong> — a demonstration storefront. No payment is taken and no orders are placed on this page.</p>
+                <div class="footer-about">
+                    <h2 id="about-demo-heading">About this demonstration store</h2>
+                    <p>Demo Store is a working demonstration of a small online shop, built for one client and shown here so the design and behaviour can be reviewed in a real browser. It is not a live shop and it is not accepting customers.</p>
+                    <p>The catalogue, prices, stock levels and shipping options you see are real fields read from the store's own database, so the behaviour shown is the behaviour the finished store would have. Payment is deliberately not connected: the store is wired to a sandbox/test payment account only, and test card 4242 4242 4242 4242 (any future date, any 3-digit code) walks through the checkout.</p>
+                    <p>Nothing is charged, no card details are entered on this site, no orders are placed, and no goods ship. No cookies are set and no third-party scripts or resources load on any page.</p>
+                </div>
+                <p class="footer-disclaimer"><strong>Disclaimer:</strong> this page is a demonstration only. It is not a live shop, no payment can be taken, and nothing will ship.</p>
+                <p class="footer-top"><button type="button" class="to-top" data-to-top>Return to top ↑</button></p>
             </div>
         </footer>
     </main>
@@ -69,5 +107,7 @@
     <script src="/js/accessibility.js" defer></script>
     <script src="/js/cart.js" defer></script>
     <script src="/js/store.js" defer></script>
+    <script src="/js/floating-cart.js" defer></script>
+    <script src="/js/return-to-top.js" defer></script>
 </body>
 </html>

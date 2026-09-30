@@ -88,6 +88,14 @@ const CHECKOUT_SUBMIT_NOTICE =
 const CHECKOUT_AFTER_SUBMIT_NOTICE =
   "Demonstration only. No goods ship, nothing is charged, and this is a test environment.";
 
+/* This store is a demonstration and will never take a real payment. When no
+   payment key is configured there is nothing to start, so we say exactly that
+   instead of letting a provider rejection — or a Cloudflare platform error code
+   — reach the customer. See the guard at the top of handleCheckout. */
+const DEMO_CHECKOUT_UNAVAILABLE =
+  "This is a demonstration store and it cannot take payment. No payment account " +
+  "is connected, so checkout is disabled. Nothing is charged and no goods ship.";
+
 /* Pre-fills the email field on the payment page so a tester does not have to
    type it.
 
@@ -260,6 +268,13 @@ function idempotencyKeyFor(requestId) {
 
 /** POST /api/checkout — resolves everything from D1, returns only a URL. */
 async function handleCheckout(request, env) {
+  // Demonstration store: with no payment key there is no checkout to start.
+  // Fail clearly and cheaply, before any database work, and never surface a
+  // platform error code for a state that is intended, not broken.
+  if (!env.STRIPE_SECRET_KEY || !String(env.STRIPE_SECRET_KEY).trim()) {
+    return json({ error: "not_available", message: DEMO_CHECKOUT_UNAVAILABLE }, 503);
+  }
+
   let body;
   try {
     body = await request.json();
@@ -634,7 +649,23 @@ export default {
       if (request.method !== "POST") {
         return json({ error: "Method not allowed" }, 405);
       }
-      return handleCheckout(request, env);
+      // A Worker exception must never reach the customer as a platform error
+      // code (1101). Answer with a plain, structured message instead.
+      try {
+        return await handleCheckout(request, env);
+      } catch (error) {
+        console.error(
+          `checkout: unhandled error — ${error && error.message ? error.message : "unknown"}`,
+        );
+        return json(
+          {
+            error: "internal_error",
+            message:
+              "Checkout could not be started. This is a demonstration store and no payment can be taken.",
+          },
+          500,
+        );
+      }
     }
 
     const productMatch = pathname.match(/^\/api\/products\/([^/]+)\/?$/);

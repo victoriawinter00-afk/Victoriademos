@@ -294,6 +294,38 @@ confirmed the order exists. It never runs on page load, so abandoning checkout a
 coming back keeps the selection, and it does not run while an order is still being
 confirmed.
 
+**Floating cart (storefront list page).** `public/js/floating-cart.js` renders a
+`position: fixed` panel in the space to the right of the product grid, so it
+follows the scroll. It is **not a second cart**: it reads and writes only through
+`window.StoreCart` (the one `store-cart` key) and prices lines from the same
+`GET /api/products` the cart page uses, so the two cannot disagree. It is revealed
+only when the script **measures** enough free space beside the rendered grid
+(`documentElement.clientWidth − grid.getBoundingClientRect().right ≥ panel width +
+2 × 24px`); below that it stays absent and `/cart` is the only cart. It is never
+loaded on `/cart`. The panel starts `hidden` (so it is absent without JavaScript),
+stays hidden while the cart is empty, and its live region (`#floating-cart-status`)
+is empty on load and written only on a user-initiated change.
+
+**Page-foot copy and return-to-top.** `index.html`'s footer carries expanded
+demonstration copy, a visible disclaimer, and a `Return to top` button. That
+control is a **new component**, not a port: the consulting site has no
+return-to-top. It lives in the footer (never above the fold), is a real button (no
+`#top` anchor exists), and `public/js/return-to-top.js` scrolls smoothly by default
+and instantly when `prefers-reduced-motion: reduce` matches, then moves focus to
+`#main-content`.
+
+**Social preview.** `index.html` carries Open Graph and Twitter `summary_large_image`
+tags with **absolute** URLs, pointing at `public/og-image-store.png` — a real
+1200×630 PNG — with `og:image:width`/`height`/`type` matching the file. The source
+template is `store-og-template.html` at the repository root, deliberately outside
+`public/` so it is not served.
+
+**Missing payment key.** `POST /api/checkout` returns `503 { "error":
+"not_available", "message": … }` stating plainly that this is a demonstration store
+that cannot take payment, before any database work, when `STRIPE_SECRET_KEY` is
+unset. A route-level `try/catch` additionally turns any unexpected exception into a
+structured `500` JSON body, so a platform error code (1101) is never surfaced.
+
 ## Order lookup
 
 `GET /api/orders/:sessionId` returns the order for one Stripe Checkout session,
