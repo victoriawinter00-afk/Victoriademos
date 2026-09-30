@@ -104,7 +104,41 @@ Do not present the retainer as an optional line item the client can decline, and
 
 - **50% at engagement start**, remainder on delivery — matching your existing Custom Web Application terms.
 - **Maintenance begins the month after launch** and bills monthly in advance.
-- **Third-party fees are the client's, paid directly:** their domain, their Cloudflare account (~$5/month if Workers Paid is needed), their Stripe account (card fees), any Stripe Tax charges.
+
+### Platform costs the client pays — the full stack, not the summary
+
+Earlier drafts of this document said *"~$5/month + Stripe fees."* **That was incomplete**, and a client who adds it up would rightly feel misled. State the whole picture:
+
+| Item | Cost | Applies when |
+|---|---|---|
+| **Cloudflare Workers Paid** | **$5/month** | **Required** for email sending. This is the only mandatory platform subscription |
+| **Cloudflare R2** (images) | **$0** within the free allowance, then usage-based | 10 GB storage, 1M writes, 10M reads per month free. A small catalog sits near **1% of the storage allowance**; serving images would need roughly a million page views a month to approach the read limit. **Effectively $0 for any store of this size** |
+| **Cloudflare D1** (database) | **$0** within the free allowance, then $5/month | Generous free tier. Small stores stay inside it |
+| **Cloudflare Pages** (static hosting) | **$0** | Free for static assets |
+| **Domain name** | **~$10–15/year** at a registrar | The client's, in their name |
+| **Stripe** | **2.9% + $0.30 per transaction** | Per sale. **See the pricing warning below** |
+| **Stripe Tax** (if used) | Per-transaction fee | Only if they enable it |
+
+**Realistic total for a small store: about $5/month, plus per-transaction card fees.** R2, D1, and Pages are free at this scale — but say so as a judgement, and tell the client the thresholds so they can see it for themselves rather than taking it on faith.
+
+### The $0.30 that decides their product pricing
+
+**Stripe's fixed $0.30 per transaction is proportionally brutal on small orders.** On a $5 sale it is **6% of the total** before the percentage fee. The client's margin evaporates on cheap items.
+
+| Order value | Stripe's $0.30 as a share |
+|---|---|
+| $5 | **6.0%** |
+| $10 | 3.0% |
+| $25 | 1.2% |
+| $50 | 0.6% |
+
+**Advise a minimum order value** — **$10 or higher** makes the structure work. This is a genuinely useful thing to tell a client, and it costs nothing to say. It is also a reason some small-item businesses are better served by a platform that bundles payment fees differently, which is worth admitting when it is true.
+
+### Say this to clients before they sign
+
+> Platform costs are paid directly to the providers, in your name, on your own accounts. For a store this size that is about **$5 a month** for Cloudflare Workers, plus Stripe's card fees — currently 2.9% plus 30 cents per transaction. Image storage, the database, and static hosting all sit inside their free allowances at this scale, and I will show you the thresholds so you can watch them. There is no subscription to me beyond the maintenance plan.
+
+**Being precise here earns trust; rounding is what gets remembered badly.** The earlier "~$5/month" phrasing was the kind of summary that becomes an argument later.
 
 ---
 
