@@ -2,7 +2,7 @@
 
    The stored shape is exactly [{ slug, quantity }] — never prices.
    Every value read from localStorage is treated as attacker-controlled: it is
-   validated and normalised before use, and the cleaned form is written back.
+   validated and normalized before use, and the cleaned form is written back.
    This module is a display layer. It is not a security boundary, and nothing it
    holds may be trusted by the server at checkout. */
 (function () {

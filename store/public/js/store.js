@@ -1,5 +1,5 @@
 /* Storefront rendering. Fetches the local product API and builds DOM nodes.
-   All catalogue text is written with textContent — never innerHTML — so product
+   All catalog text is written with textContent — never innerHTML — so product
    content cannot inject markup. No third-party code, no external requests. */
 (function () {
     "use strict";
