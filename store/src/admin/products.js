@@ -146,7 +146,7 @@ function stockProblem(type, stock) {
   return null;
 }
 
-/** GET /api/admin/products — everything, including inactive. */
+/** GET /api/admin/products - everything, including inactive. */
 export async function listProducts(env) {
   const { results } = await env.DB.prepare(
     `SELECT ${ADMIN_COLUMNS} FROM products ORDER BY sort_order ASC, name ASC`,
@@ -194,7 +194,7 @@ export async function createProduct(request, env, actor) {
     if (/unique|constraint/i.test(message)) {
       return json({ error: "conflict", message: "A product with that slug already exists." }, 409);
     }
-    console.error(`admin: product create failed — ${message}`);
+    console.error(`admin: product create failed - ${message}`);
     return json({ error: "server_error", message: "The product could not be created." }, 500);
   }
 
@@ -267,7 +267,7 @@ export async function updateProduct(request, env, actor, slug) {
   return json({ product: await findProduct(env, slug) });
 }
 
-/** DELETE /api/admin/products/:slug — soft delete, never a row deletion. */
+/** DELETE /api/admin/products/:slug - soft delete, never a row deletion. */
 export async function softDeleteProduct(env, actor, slug) {
   const existing = await findProduct(env, slug);
   if (!existing) return json({ error: "not_found", message: "No product with that slug." }, 404);

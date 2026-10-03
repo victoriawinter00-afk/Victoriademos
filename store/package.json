@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Custom Store V1 — one Worker serving the static storefront and the product API. Phase 1 scaffold.",
+  "description": "Custom Store V1 - one Worker serving the static storefront and the product API. Phase 1 scaffold.",
   "scripts": {
     "dev": "wrangler dev",
     "db:schema": "wrangler d1 execute demo-store-db --local --file=./schema.sql",

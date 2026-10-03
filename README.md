@@ -6,7 +6,7 @@ Cloudflare bindings.
 
 ## Demos
 
-- **[`store/`](store/README.md)** — a small, client-owned online store. One
+- **[`store/`](store/README.md)** - a small, client-owned online store. One
   Cloudflare Worker serves both the static storefront and a product API over D1,
   with physical, digital, and service products. No payment code and no
   deployment in this phase.

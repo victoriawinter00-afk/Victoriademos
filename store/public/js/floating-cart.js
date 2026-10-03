@@ -9,7 +9,7 @@
  *
  * Cart state is NOT owned here. Everything reads and writes window.StoreCart
  * (cart.js), which owns the single `store-cart` localStorage key, and the count
- * is the existing `[data-cart-count]` span that cart.js already maintains — so
+ * is the existing `[data-cart-count]` span that cart.js already maintains - so
  * there is no second source of truth and the button, the panel and /cart cannot
  * disagree. The button is a real <a href="/cart">, so it navigates without any
  * script of its own.
@@ -82,7 +82,7 @@
     }
 
     /* The header's own cart link is the page's permanent affordance. It scrolls
-       away — that is the whole reason this button exists — so the button appears
+       away - that is the whole reason this button exists - so the button appears
        only once the header link has left the viewport. That keeps exactly one
        cart control reachable at every scroll position, and at the top of the
        page it keeps the button out of the band where the wrapped filter row can

@@ -1,5 +1,5 @@
 /**
- * v2 slot — weight-band shipping. NOT IMPLEMENTED. Intentionally.
+ * v2 slot - weight-band shipping. NOT IMPLEMENTED. Intentionally.
  *
  * This is fully achievable with what we already have, and it works inside
  * hosted Checkout, because the cart is known before the session exists:
@@ -12,7 +12,7 @@
  *
  * Bands follow the same convention as flat rates: the placeholder is
  * deliberately $1.00 and carries a visible description saying the client must set
- * the real value for their product and region. Nothing here is wired up yet —
+ * the real value for their product and region. Nothing here is wired up yet - 
  * there is no `weight_bands` table and no `weight_g` column, so no placeholder
  * row exists anywhere. This file is the socket, not the wiring.
  *
@@ -22,7 +22,7 @@
  * there is no client yet to choose them for.
  *
  * It THROWS rather than returning null on purpose. If a rate row is pointed at
- * this strategy before it exists, checkout must fail loudly — silently offering
+ * this strategy before it exists, checkout must fail loudly - silently offering
  * no shipping would ship goods for free.
  */
 export async function weightBandStrategy() {

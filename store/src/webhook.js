@@ -3,8 +3,8 @@
  *
  * Handler order is fixed and identical for every request:
  *   1. read the RAW body (the signature covers exact bytes, so never parse first)
- *   2. verify the signature — on failure, 400, and do no work at all
- *   3. insert the event id into processed_events — a duplicate means 200 and stop
+ *   2. verify the signature - on failure, 400, and do no work at all
+ *   3. insert the event id into processed_events - a duplicate means 200 and stop
  *   4. do the work
  *   5. return 200
  *
@@ -118,7 +118,7 @@ function collectedAddress(session) {
 }
 
 /**
- * SEAM — merchant notification.
+ * SEAM - merchant notification.
  * There is no Cloudflare Email Sending binding in this project and none has been
  * added: Email Sending needs a Workers Paid plan, and adding a binding here would
  * silently change the deployment requirements. This logs instead. Replace the
@@ -126,13 +126,13 @@ function collectedAddress(session) {
  */
 function notifyMerchant(order) {
   console.log(
-    `order: merchant notification pending (not sent — no email binding) ` +
+    `order: merchant notification pending (not sent - no email binding) ` +
       `order=${order.id} total_cents=${order.total_cents} needs_attention=${order.needs_attention}`,
   );
 }
 
 /**
- * `checkout.session.completed` — the hold becomes a sale.
+ * `checkout.session.completed` - the hold becomes a sale.
  * The order is written unconditionally: money has moved. If the stock cannot
  * actually cover it, the order is still recorded and flagged, never dropped.
  */
@@ -209,7 +209,7 @@ async function onSessionCompleted(env, session) {
       // Paid for something the shelf cannot cover. Recorded, flagged, not hidden.
       needsAttention = 1;
       console.error(
-        `order: oversold — order=${orderId} slug=${line.s} requested=${line.q} on_hand=${
+        `order: oversold - order=${orderId} slug=${line.s} requested=${line.q} on_hand=${
           product ? product.stock : "missing"
         }`,
       );
@@ -242,7 +242,7 @@ async function onSessionCompleted(env, session) {
   });
 }
 
-/** `checkout.session.expired` — give the hold back. */
+/** `checkout.session.expired` - give the hold back. */
 async function onSessionExpired(env, session) {
   const reservationId = session?.metadata?.reservation_id;
   if (!reservationId) {
@@ -255,7 +255,7 @@ async function onSessionExpired(env, session) {
   );
 }
 
-/** `charge.refunded` — put the stock back and mark the order. */
+/** `charge.refunded` - put the stock back and mark the order. */
 async function onChargeRefunded(env, charge) {
   const paymentIntent = charge?.payment_intent;
   if (!paymentIntent) return;
@@ -306,7 +306,7 @@ export async function handleStripeWebhook(request, env) {
   const verified = await verifyStripeSignature(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);
   if (!verified) {
     // No work happens on an unverified request. Nothing is written, nothing read.
-    console.error("webhook: signature verification failed — request rejected");
+    console.error("webhook: signature verification failed - request rejected");
     return json({ error: "invalid_signature" }, 400);
   }
 
@@ -355,7 +355,7 @@ export async function handleStripeWebhook(request, env) {
       .bind(event.id)
       .run();
     console.error(
-      `webhook: ${event.type} failed — ${error && error.message ? error.message : "unknown"}`,
+      `webhook: ${event.type} failed - ${error && error.message ? error.message : "unknown"}`,
     );
     return json({ error: "processing_failed" }, 500);
   }

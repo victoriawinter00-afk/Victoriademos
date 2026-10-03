@@ -33,7 +33,7 @@ const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
 /**
  * Columns read from D1 and mapped to a public shape. `stock` is selected so the
  * mapper can derive availability, and is never returned to the client. `held` is
- * the live reservation total — holds past their expiry are excluded here, which
+ * the live reservation total - holds past their expiry are excluded here, which
  * is what makes lazy expiry work: a missed expiry webhook costs nothing, because
  * the next read simply stops counting the dead hold.
  */
@@ -48,7 +48,7 @@ function availableColumns(nowParam) {
 }
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,79}$/;
-// Stripe Checkout session ids, e.g. cs_test_a1B2... — the order lookup key.
+// Stripe Checkout session ids, e.g. cs_test_a1B2... - the order lookup key.
 const SESSION_ID_PATTERN = /^cs_[A-Za-z0-9_]{10,200}$/;
 const REQUEST_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -61,7 +61,7 @@ const MAX_LINES = 50;
 /* ---------------------------------------------------------------------------
    Shipping.
    Rates are NOT defined here. They are rows in the D1 `shipping_rates` table,
-   because the rate is the client's decision and is set per client — see
+   because the rate is the client's decision and is set per client - see
    src/shipping/ for the strategies and store/README.md for where to change them.
    SHIPPING_COUNTRIES is the one remaining placeholder: the list of countries a
    physical order may ship to, which is a business decision, not a technical one.
@@ -82,7 +82,7 @@ const CHECKOUT_SESSION_MINUTES = 30;
    Stripe renders `custom_text` as PLAIN TEXT, so these carry no markdown.
 --------------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------------
-   DEMO CONTENT — the notices Stripe prints on the payment page. A client build
+   DEMO CONTENT - the notices Stripe prints on the payment page. A client build
    strips or replaces this whole block.
 
    The second half is the operator's approved copy (docs/COPY-DRAFTS.md), condensed
@@ -91,11 +91,11 @@ const CHECKOUT_SESSION_MINUTES = 30;
 --------------------------------------------------------------------------- */
 const CHECKOUT_TEST_CARD_NOTICE =
   "This is a demonstration store. Use test card 4242 4242 4242 4242 with any " +
-  "future date and any 3-digit code. Do not enter a real card — a real card " +
+  "future date and any 3-digit code. Do not enter a real card - a real card " +
   "will be declined.";
 const CHECKOUT_PAYMENT_METHODS_NOTE =
-  "Card payments work immediately. Everything else — wallets, buy-now-pay-later, " +
-  "bank transfers — takes longer to set up, and some of it changes who carries " +
+  "Card payments work immediately. Everything else - wallets, buy-now-pay-later, " +
+  "bank transfers - takes longer to set up, and some of it changes who carries " +
   "dispute risk. I start every store with card only. Full detail on the store page.";
 /* The test-card instruction stays FIRST: it is what makes the demo usable. */
 const CHECKOUT_SUBMIT_NOTICE = `${CHECKOUT_TEST_CARD_NOTICE} ${CHECKOUT_PAYMENT_METHODS_NOTE}`;
@@ -104,8 +104,8 @@ const CHECKOUT_AFTER_SUBMIT_NOTICE =
 
 /* This store is a demonstration and will never take a real payment. When no
    payment key is configured there is nothing to start, so we say exactly that
-   instead of letting a provider rejection — or a Cloudflare platform error code
-   — reach the customer. See the guard at the top of handleCheckout. */
+   instead of letting a provider rejection - or a Cloudflare platform error code
+ - reach the customer. See the guard at the top of handleCheckout. */
 const DEMO_CHECKOUT_UNAVAILABLE =
   "This is a demonstration store and it cannot take payment. No payment account " +
   "is connected, so checkout is disabled. Nothing is charged and no goods ship.";
@@ -114,7 +114,7 @@ const DEMO_CHECKOUT_UNAVAILABLE =
    type it.
 
    NOTE, so nobody later assumes otherwise: Checkout does NOT allow this field
-   to be LOCKED. A visitor can overwrite it — it is a convenience, not a
+   to be LOCKED. A visitor can overwrite it - it is a convenience, not a
    guarantee. The reliable record of who paid is the order's email, which is
    written from the payment provider's own confirmation, never from the browser. */
 const CUSTOMER_EMAIL_PREFILL = "victoria00business00@gmail.com";
@@ -122,13 +122,13 @@ const CUSTOMER_EMAIL_PREFILL = "victoria00business00@gmail.com";
 /* ---------------------------------------------------------------------------
    Checkout branding, applied per session FROM CODE.
 
-   There is no account-level branding API — the dashboard default cannot be set
+   There is no account-level branding API - the dashboard default cannot be set
    from a shell or from here. Per-session `branding_settings` is the supported
    path, and it is better for this project anyway: version-controlled, applied to
    every session, and it travels with the store to a client.
 
    These are STRIPE'S CLOSED ENUMS, not free text. Do not "tidy" them:
-     font_family   snake_case, e.g. `open_sans` — closest to the store's own
+     font_family   snake_case, e.g. `open_sans` - closest to the store's own
                    "Segoe UI", "Helvetica Neue", Arial stack
      border_style  one of `rounded` | `rectangular` | `pill`; `sharp` is REJECTED
 
@@ -136,7 +136,7 @@ const CUSTOMER_EMAIL_PREFILL = "victoria00business00@gmail.com";
    (public/css/store.css: `--color-accent`, `--color-background`).
 
    NO LOGO is sent. `branding_settings[logo]` needs a publicly hosted, roughly
-   square image and the project has no such asset — public/og-image-store.png is
+   square image and the project has no such asset - public/og-image-store.png is
    a 1200x630 social card, the wrong shape. That is a brand-asset gap to raise
    with the client, not something to fake from code.
 --------------------------------------------------------------------------- */
@@ -149,7 +149,7 @@ const CHECKOUT_BRANDING = {
 };
 
 /* The countries a physical order may ship to. A real client sets this to their
-   own shipping region — it is a business setting, not a technical default. */
+   own shipping region - it is a business setting, not a technical default. */
 const SHIPPING_COUNTRIES = ["US"];
 
 /** JSON response helper. */
@@ -178,7 +178,7 @@ async function parseProviderJson(response) {
  * Physical items expose in_stock (boolean), never raw stock or reservation
  * numbers. Availability counts live holds only, so an item fully held by open
  * checkouts reads as out of stock.
- * Digital and service items are always purchasable — stock is not tracked.
+ * Digital and service items are always purchasable - stock is not tracked.
  */
 function toPublicProduct(row) {
   const held = row.held ?? 0;
@@ -200,7 +200,7 @@ function toPublicProduct(row) {
 
 /* --------------------------- Catalog endpoints ---------------------------- */
 
-/** GET /api/products — every active product, in display order. */
+/** GET /api/products - every active product, in display order. */
 async function listProducts(env) {
   const now = nowSeconds();
   const { results } = await env.DB.prepare(
@@ -215,7 +215,7 @@ async function listProducts(env) {
   return json({ products: results.map(toPublicProduct) });
 }
 
-/** GET /api/products/:slug — one active product; 404 for unknown or inactive. */
+/** GET /api/products/:slug - one active product; 404 for unknown or inactive. */
 async function getProduct(env, slug) {
   const now = nowSeconds();
   const row = await env.DB.prepare(
@@ -325,12 +325,12 @@ function idempotencyKeyFor(requestId) {
   return `checkout-${crypto.randomUUID()}`;
 }
 
-/** POST /api/checkout — resolves everything from D1, returns only a URL. */
+/** POST /api/checkout - resolves everything from D1, returns only a URL. */
 async function handleCheckout(request, env) {
   // E-29: this Worker no longer speaks to Stripe. It speaks to the payments
   // proxy (Worker B), which is the only component that holds the Stripe key,
   // because a Worker on this custom domain cannot complete TLS to Stripe.
-  // No proxy configured means there is no payment to start — say exactly that,
+  // No proxy configured means there is no payment to start - say exactly that,
   // before any database work, rather than surfacing a platform error code.
   if (!env.PAYMENTS_PROXY_URL || !env.PROXY_SECRET) {
     return json({ error: "not_available", message: DEMO_CHECKOUT_UNAVAILABLE }, 503);
@@ -410,7 +410,7 @@ async function handleCheckout(request, env) {
   // so a missed checkout.session.expired costs nothing.
   await sweepExpiredReservations(env, slugs, now);
 
-  // Then report availability against LIVE holds only — the customer is told what
+  // Then report availability against LIVE holds only - the customer is told what
   // is really available before anything is held.
   const shortages = [];
   for (const line of lines) {
@@ -484,7 +484,7 @@ async function handleCheckout(request, env) {
       });
     } catch (error) {
       console.error(
-        `checkout: shipping resolution failed — ${error && error.message ? error.message : "unknown"}`,
+        `checkout: shipping resolution failed - ${error && error.message ? error.message : "unknown"}`,
       );
       await releaseReservation(env, reservationId, "released");
       return json(
@@ -537,11 +537,11 @@ async function handleCheckout(request, env) {
 
   addLineItemMetadata(params, lines, needsShipping, reservationId);
 
-  // Stock-exposure dial — see CHECKOUT_SESSION_MINUTES. Stripe's minimum is 30
+  // Stock-exposure dial - see CHECKOUT_SESSION_MINUTES. Stripe's minimum is 30
   // minutes and its default is 24 hours; we never want the default.
   params.set("expires_at", String(expiresAt));
 
-  // Demo clarity on the payment page, plus a pre-filled — but NOT locked —
+  // Demo clarity on the payment page, plus a pre-filled - but NOT locked - 
   // email field. See the notes on the constants above.
   params.set("customer_email", CUSTOMER_EMAIL_PREFILL);
   params.set("custom_text[submit][message]", CHECKOUT_SUBMIT_NOTICE);
@@ -615,18 +615,18 @@ async function handleCheckout(request, env) {
     );
   }
 
-  // Only the redirect URL leaves this Worker — never the session object.
+  // Only the redirect URL leaves this Worker - never the session object.
   return json({ url: session.url });
 }
 
 /* ------------------------------ Orders ------------------------------------ */
 
 /**
- * GET /api/orders/:sessionId — the order recorded for one checkout session.
+ * GET /api/orders/:sessionId - the order recorded for one checkout session.
  *
  * The session id IS the bearer token: Stripe generates it, it is long and
  * unguessable, and Stripe hands it back in the success URL. It is the ONLY key
- * accepted here — never an order id, never an email — and it is never logged.
+ * accepted here - never an order id, never an email - and it is never logged.
  *
  * Line items come from the order snapshot rather than a join back to `products`,
  * so a later price change cannot rewrite what someone bought.
@@ -742,7 +742,7 @@ export default {
         return await handleCheckout(request, env);
       } catch (error) {
         console.error(
-          `checkout: unhandled error — ${error && error.message ? error.message : "unknown"}`,
+          `checkout: unhandled error - ${error && error.message ? error.message : "unknown"}`,
         );
         return json(
           {

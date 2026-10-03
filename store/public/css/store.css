@@ -1,5 +1,5 @@
 /* =============================================================================
-   Demo Store — storefront stylesheet.
+   Demo Store - storefront stylesheet.
 
    Reuses the consulting site's design language: the same palette, surface
    tokens, card treatment, button shapes, top bar, and responsive breakpoints.
@@ -104,7 +104,7 @@ button { background: none; border: none; cursor: pointer; font: inherit; color: 
 input, textarea, select { font: inherit; }
 
 /* The `hidden` attribute must actually hide. The user-agent `[hidden]` rule is
-   beaten by ANY author `display` declaration — `.product-card { display: flex }`
+   beaten by ANY author `display` declaration - `.product-card { display: flex }`
    and `.detail-grid { display: grid }` both did exactly this, so state set in
    JavaScript (`card.hidden = true`) had no visual effect. Nothing in this
    stylesheet relies on a `hidden` element being displayed. */
@@ -273,6 +273,24 @@ p { margin-bottom: 1rem; }
     opacity: 0.88;
 }
 
+/* New-tab note, directly beneath the cookie disclaimer at the top of the
+   storefront home page. Shares the .site-note tone (centred, small) so it reads
+   as part of the same notice furniture. The "HERE" link back to the consulting
+   site is underlined and emphasised to make the way back obvious. */
+.return-note {
+    max-width: 740px;
+    margin: 0.75rem auto;
+    padding: 0 1rem;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.return-note a {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    font-weight: 700;
+}
+
 /* ------------------------------
    SECTION HEADINGS
 ------------------------------- */
@@ -346,7 +364,7 @@ p { margin-bottom: 1rem; }
    introduces an external request. */
 /* Category glyph: the inline SVG drawn into a media block that has no
    photograph (see buildTypeGlyph in public/js/store.js). Absolutely positioned
-   so it fills the block without affecting layout, and decorative — the type is
+   so it fills the block without affecting layout, and decorative - the type is
    also printed in .product-card__media-label beside it. */
 .product-card__glyph,
 .detail-glyph {
@@ -882,7 +900,7 @@ body.dark-mode .cart-item__remove {
    Fixed to the viewport so it follows the scroll, sitting in the otherwise
    unused space to the right of the product grid. It is ONLY revealed by
    floating-cart.js, and only when that script MEASURES enough free space beside
-   the grid — there is deliberately no guessed breakpoint here. Starting hidden
+   the grid - there is deliberately no guessed breakpoint here. Starting hidden
    also means it never appears when JavaScript is unavailable. The panel reads
    and writes the ONE cart module (`store-cart` key), so it cannot disagree with
    the cart page.
@@ -1005,7 +1023,10 @@ body.dark-mode .floating-cart {
 .view-cart-fab {
     position: fixed;
     right: 24px;
-    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    /* --return-fab-offset is set by return-link.js once the return link is
+       visible; it lifts the cart button clear of the link beneath it. Unset (0)
+       when the link is hidden, so the button sits in its usual place. */
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px) + var(--return-fab-offset, 0px));
     z-index: 50;
     display: inline-flex;
     align-items: center;
@@ -1040,10 +1061,64 @@ body.dark-mode .view-cart-fab {
     }
 }
 
-/* Reserved bottom space on the pages that carry the floating button, so at the
-   end of the document it sits in empty space and never covers the footer, the
-   disclaimer, or the "return to top" control. */
-body[data-page="list"] .disclaimer-footer,
+/* ------------------------------
+   FLOATING "RETURN TO THE CONSULTATION WEBSITE" LINK
+
+   The same fixed bottom-right control system as .view-cart-fab (same anchor,
+   same 44px minimum, same palette, same focus ring, same z-index). Shown by
+   return-link.js once the new-tab note has scrolled out of view, and shown
+   regardless of the cart. It occupies the base bottom-right slot; the cart
+   button is lifted above it via --return-fab-offset, so the two never overlap.
+   ------------------------------- */
+.return-fab {
+    position: fixed;
+    right: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    max-width: min(80vw, 340px);
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.65rem 1.15rem;
+    border: 1px solid var(--color-accent-dark);
+    border-radius: var(--border-radius-xl);
+    background: var(--color-accent);
+    color: #1d2d2a;
+    font-family: var(--font-family);
+    font-size: var(--font-size-medium);
+    font-weight: 700;
+    text-align: center;
+    box-shadow: var(--box-shadow-soft);
+    transition: background-color 160ms ease;
+}
+
+.return-fab:hover,
+.return-fab:focus-visible {
+    background: var(--color-primary);
+}
+
+body.dark-mode .return-fab {
+    color: #0b1a17;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .return-fab {
+        transition: none;
+    }
+}
+
+/* Reserved bottom space on the pages that carry the floating controls, so at
+   the end of the document they sit in empty space and never cover the footer,
+   the disclaimer, or the "return to top" control. The list page carries BOTH
+   the cart button and the return link stacked, so it reserves more room than
+   the detail page (cart button only). */
+body[data-page="list"] .disclaimer-footer {
+    padding-bottom: 10rem;
+}
+
 body[data-page="detail"] .disclaimer-footer {
     padding-bottom: 6rem;
 }

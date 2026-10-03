@@ -1,5 +1,5 @@
 /**
- * Admin authentication — Cloudflare Access JWT verification.
+ * Admin authentication - Cloudflare Access JWT verification.
  *
  * THE POINT, and it governs this whole phase:
  *
@@ -19,7 +19,7 @@
  * A note on why this is testable locally: Cloudflare signs with an `iss` equal
  * to the same team domain that serves the JWKS, so ONE variable supplies both
  * the JWKS URL and the expected issuer. Point it at a local JWKS server and the
- * real verification path runs unchanged — no bypass, no test-only branch.
+ * real verification path runs unchanged - no bypass, no test-only branch.
  */
 
 const JWKS_TTL_MS = 5 * 60 * 1000;
@@ -27,7 +27,7 @@ const CLOCK_SKEW_SECONDS = 60;
 const ALLOWED_ALGORITHM = "RS256";
 
 /* Module-level cache: a Worker isolate reuses it between requests. Never fetch
-   the keys per request — that would make every admin call depend on a network
+   the keys per request - that would make every admin call depend on a network
    round trip and would invite rate limiting. */
 let jwksCache = { url: null, expiresAt: 0, keys: [] };
 
@@ -100,7 +100,7 @@ function audienceMatches(claim, expected) {
  * Returns the verified admin identity, or null.
  *
  * Every failure path returns null. Nothing throws outward, and a failure to
- * reach the JWKS is a failure to authenticate — never a pass.
+ * reach the JWKS is a failure to authenticate - never a pass.
  */
 export async function requireAdmin(request, env) {
   const token = request.headers.get("cf-access-jwt-assertion");
@@ -119,7 +119,7 @@ export async function requireAdmin(request, env) {
     return null;
   }
 
-  // Reject any algorithm that is not exactly RS256 — this is what stops
+  // Reject any algorithm that is not exactly RS256 - this is what stops
   // "alg: none" and algorithm-confusion tricks before any key work happens.
   if (!header || header.alg !== ALLOWED_ALGORITHM) return null;
   if (typeof header.kid !== "string" || header.kid === "") return null;
@@ -129,7 +129,7 @@ export async function requireAdmin(request, env) {
     jwks = await getJwks(env);
   } catch (error) {
     console.error(
-      `admin: cannot verify access tokens — ${error && error.message ? error.message : "unknown"}`,
+      `admin: cannot verify access tokens - ${error && error.message ? error.message : "unknown"}`,
     );
     return null;
   }

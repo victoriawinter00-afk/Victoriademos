@@ -9,7 +9,7 @@
  * What it does:
  *   1. Parses demo-catalog.csv (RFC 4180: quoted fields, "" escapes, CRLF).
  *      Strict: any row whose field count does not match the header fails the
- *      import with the row number and both counts — no guessing, no repairs.
+ *      import with the row number and both counts - no guessing, no repairs.
  *   2. Writes an idempotent SQL script to scripts/.tmp/seed.sql (gitignored).
  *   3. Runs it with `wrangler d1 execute --local`.
  *

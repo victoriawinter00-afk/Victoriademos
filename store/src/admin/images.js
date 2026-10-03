@@ -65,7 +65,7 @@ export function sniffImageType(bytes) {
   return null;
 }
 
-/** POST /api/admin/products/:slug/image — raw image body. */
+/** POST /api/admin/products/:slug/image - raw image body. */
 export async function uploadProductImage(request, env, actor, slug) {
   const product = await env.DB.prepare(
     `SELECT slug, image_key FROM products WHERE slug = ?1`,
@@ -127,7 +127,7 @@ export async function uploadProductImage(request, env, actor, slug) {
     );
   }
 
-  /* Generated here, never from the client's filename — so a filename containing
+  /* Generated here, never from the client's filename - so a filename containing
      "../" has nothing to attach to, and no caller-supplied text reaches the key. */
   const imageKey = `products/${slug}-${crypto
     .randomUUID()
@@ -138,7 +138,7 @@ export async function uploadProductImage(request, env, actor, slug) {
     await env.IMAGES.put(imageKey, bytes, { httpMetadata: { contentType: sniffed } });
   } catch (error) {
     console.error(
-      `admin: image store failed — ${error && error.message ? error.message : "unknown"}`,
+      `admin: image store failed - ${error && error.message ? error.message : "unknown"}`,
     );
     return json({ error: "server_error", message: "The image could not be stored." }, 500);
   }
@@ -159,7 +159,7 @@ export async function uploadProductImage(request, env, actor, slug) {
     // invisible garbage. Remove it rather than leave it behind.
     await env.IMAGES.delete(imageKey).catch(() => {});
     console.error(
-      `admin: image row update failed — ${error && error.message ? error.message : "unknown"}`,
+      `admin: image row update failed - ${error && error.message ? error.message : "unknown"}`,
     );
     return json(
       { error: "server_error", message: "The image could not be attached to the product." },
@@ -169,13 +169,13 @@ export async function uploadProductImage(request, env, actor, slug) {
 
   /* Best effort: drop the object this upload replaced, so replacing an image
      does not quietly accumulate orphans in the bucket. Failure is logged and not
-     fatal — the new image is already recorded. */
+     fatal - the new image is already recorded. */
   if (product.image_key && product.image_key !== imageKey) {
     try {
       await env.IMAGES.delete(product.image_key);
     } catch (error) {
       console.error(
-        `admin: could not remove the replaced image — ${
+        `admin: could not remove the replaced image - ${
           error && error.message ? error.message : "unknown"
         }`,
       );

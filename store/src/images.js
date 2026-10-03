@@ -11,7 +11,7 @@
  *   - content-type from the extension of our own validated key (never from
  *     client input, and never guessed)
  *   - content-disposition: inline
- *   - x-content-type-options: nosniff — the header that stops a browser deciding
+ *   - x-content-type-options: nosniff - the header that stops a browser deciding
  *     a file is HTML because it looks like HTML
  */
 
@@ -56,7 +56,7 @@ export async function serveImage(request, env, pathname) {
   try {
     object = await env.IMAGES.get(key);
   } catch (error) {
-    console.error(`images: read failed — ${error && error.message ? error.message : "unknown"}`);
+    console.error(`images: read failed - ${error && error.message ? error.message : "unknown"}`);
     return serverError();
   }
   if (!object) return notFound();

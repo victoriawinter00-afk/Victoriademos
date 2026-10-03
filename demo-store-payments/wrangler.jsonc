@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
 
-  // Worker B — the Stripe egress proxy for demo-store. See src/index.js for why
+  // Worker B - the Stripe egress proxy for demo-store. See src/index.js for why
   // this exists (E-29) and why it is deliberately narrow.
   //
   // Reached ONLY on this Worker's workers.dev hostname. There is deliberately no
@@ -16,7 +16,7 @@
   // rules do NOT apply to workers.dev. D1 is used rather than KV because KV is
   // eventually consistent and a burst could under-count.
   //
-  // The binding name is RATE_LIMIT_DB — it must match what src/index.js reads.
+  // The binding name is RATE_LIMIT_DB - it must match what src/index.js reads.
   // A separate database from the store's, so Worker B's blast radius stays small.
   "d1_databases": [
     {

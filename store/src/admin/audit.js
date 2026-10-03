@@ -17,7 +17,7 @@ export const AUDIT_ACTIONS = {
   orderFulfil: "order.fulfil",
 };
 
-/** Statement factory — pass into env.DB.batch([ write, auditStatement(...) ]). */
+/** Statement factory - pass into env.DB.batch([ write, auditStatement(...) ]). */
 export function auditStatement(env, { actor, action, target }) {
   return env.DB.prepare(
     `INSERT INTO admin_audit (id, actor_email, action, target, created_at)

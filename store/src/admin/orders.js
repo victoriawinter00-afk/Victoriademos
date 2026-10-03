@@ -3,7 +3,7 @@
  *
  * Orders are read-mostly here: the only write is marking one fulfilled, and it
  * stamps `fulfilled_at` once. `needs_attention` is surfaced on every response
- * that carries orders, because it exists precisely for a human to act on — an
+ * that carries orders, because it exists precisely for a human to act on - an
  * order that was paid for but could not be satisfied.
  */
 
@@ -110,7 +110,7 @@ export async function getOrder(env, id) {
   return json({ order: await orderWithItems(env, order) });
 }
 
-/** PATCH /api/admin/orders/:id — the only write: mark fulfilled. */
+/** PATCH /api/admin/orders/:id - the only write: mark fulfilled. */
 export async function fulfilOrder(request, env, actor, id) {
   const order = await findOrder(env, id);
   if (!order) return json({ error: "not_found", message: "No order with that id." }, 404);

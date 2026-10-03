@@ -1,4 +1,4 @@
-# Custom Store — V1 (MVP) Specification
+# Custom Store - V1 (MVP) Specification
 
 **Status:** draft for operator review
 **Date:** 28 September 2026
@@ -29,18 +29,18 @@ A business that:
 - wants to **own** the store rather than rent it
 - is willing to pay a **maintenance retainer**, and understands why
 
-If a prospect needs any of the things in Section 5, the answer is "no, or not yet" — and if they need them badly, refer them to a hosted platform. Saying no is part of the product.
+If a prospect needs any of the things in Section 5, the answer is "no, or not yet" - and if they need them badly, refer them to a hosted platform. Saying no is part of the product.
 
 ---
 
-## 3. In scope — V1
+## 3. In scope - V1
 
 ### Storefront
 - Product list page
 - Product detail page: images, description, price, stock status
 - Cart held in `localStorage` (the same pattern as the consultation box on the current site)
 - Cart summary with quantities and a running total
-- **Checkout via Stripe Checkout** (Stripe's hosted page — see Section 6)
+- **Checkout via Stripe Checkout** (Stripe's hosted page - see Section 6)
 - Order confirmation page after returning from Stripe
 
 ### Payments
@@ -49,13 +49,13 @@ If a prospect needs any of the things in Section 5, the answer is "no, or not ye
 - Stripe emails the customer their receipt (no custom receipt email needed)
 
 ### Orders
-- Order created **only** by a verified Stripe webhook — never by the browser
+- Order created **only** by a verified Stripe webhook - never by the browser
 - Order stored in D1 with line items, totals, customer email, and status
 - Merchant notification email via Cloudflare Email Sending
 - Order status: `paid`, `fulfilled`, `refunded` (refunds set in Stripe, reflected by webhook)
 
 ### Admin
-- Behind **Cloudflare Access** (free tier) — no hand-rolled login
+- Behind **Cloudflare Access** (free tier) - no hand-rolled login
 - Add / edit / delete products
 - Upload product images to R2
 - Set price and stock quantity
@@ -68,13 +68,13 @@ If a prospect needs any of the things in Section 5, the answer is "no, or not ye
 
 ---
 
-## 4. Explicitly OUT of scope — copy this into the listing
+## 4. Explicitly OUT of scope - copy this into the listing
 
 > **What this build does not include.**
 >
 > Customer accounts and login. Discount codes and promotions. Subscriptions or recurring billing. Multi-currency. Multiple languages. Real-time inventory sync with any external system. Abandoned-cart recovery. Product reviews. Wishlists. Loyalty or referral programs. Gift cards. Marketplace or channel sync (Amazon, eBay, Etsy, social). Point of sale. B2B pricing or wholesale tiers. Custom tax rules beyond Stripe Tax. Uptime or response-time guarantees.
 >
-> **Shipping:** flat rates and weight-banded rates are supported. **Carrier-calculated live rates are not offered** — that requires package-packing logic, dimensional weight, multi-box splitting, and handling carrier API failures mid-checkout. See §13 for what shipping does and does not cover.
+> **Shipping:** flat rates and weight-banded rates are supported. **Carrier-calculated live rates are not offered** - that requires package-packing logic, dimensional weight, multi-box splitting, and handling carrier API failures mid-checkout. See §13 for what shipping does and does not cover.
 >
 > If you need any of these, a hosted platform will serve you better, and I will say so.
 
@@ -101,7 +101,7 @@ Cloudflare Worker       API: products, cart->checkout, webhooks, admin
 
 - **Client's own Cloudflare account** and **client's own Stripe account.**
 - Admin route protected by **Cloudflare Access**.
-- **$5/month (Workers Paid) + Stripe fees**, paid by the client directly. Workers Paid is **required, not optional**, in this design: Cloudflare Email Sending — which carries the merchant notification — is only available on the paid plan. Pages and Worker request volumes for a small store would otherwise sit inside the free tier; Email Sending is what forces the upgrade.
+- **$5/month (Workers Paid) + Stripe fees**, paid by the client directly. Workers Paid is **required, not optional**, in this design: Cloudflare Email Sending - which carries the merchant notification - is only available on the paid plan. Pages and Worker request volumes for a small store would otherwise sit inside the free tier; Email Sending is what forces the upgrade.
 
 ---
 
@@ -117,9 +117,9 @@ These are not features. They are the conditions that make the store safe to sell
 6. **No card data ever touches our systems.** Stripe Checkout handles all payment entry.
 7. **Every order read is authorised.** Order IDs are never trusted from the client; access is by signed session or email-verified token.
 8. **Admin is behind Cloudflare Access.** No custom password scheme.
-9. **Quantities and stock are validated server-side** — no zero, negative, or over-stock orders.
+9. **Quantities and stock are validated server-side** - no zero, negative, or over-stock orders.
 
-**On PCI scope — small, but not zero.** Hosted Stripe Checkout keeps card data entirely off our systems, which places the merchant in **SAQ A**, the lightest self-assessment. Two consequences worth stating plainly:
+**On PCI scope - small, but not zero.** Hosted Stripe Checkout keeps card data entirely off our systems, which places the merchant in **SAQ A**, the lightest self-assessment. Two consequences worth stating plainly:
 
 - **The client, as merchant of record, still completes SAQ A** and remains responsible for their own PCI attestation. We do not remove that obligation; we keep it as small as it can be.
 - **Never switch to an embedded card form.** Stripe Elements or any inline card field changes which SAQ applies and moves card data through the storefront. If a client ever asks for an on-page checkout, that is a scope change with a compliance consequence, not a styling preference.
@@ -133,7 +133,7 @@ These are not features. They are the conditions that make the store safe to sell
 | `products` | id, slug, name, description, price_cents, currency, stock, image_key, active, created_at |
 | `orders` | id, stripe_session_id, stripe_payment_intent, email, total_cents, currency, status, created_at |
 | `order_items` | id, order_id, product_id, name_snapshot, unit_price_cents, quantity |
-| `processed_events` | stripe_event_id, processed_at — the idempotency guard |
+| `processed_events` | stripe_event_id, processed_at - the idempotency guard |
 | `admin_audit` | id, actor_email, action, target, created_at |
 
 Notes:
@@ -143,7 +143,7 @@ Notes:
 
 ---
 
-## 8. QA checklist — this is the operator's job, and it is the important one
+## 8. QA checklist - this is the operator's job, and it is the important one
 
 Run every item before the store is shown to anyone. Each is a real failure mode, not a formality.
 
@@ -155,17 +155,17 @@ Run every item before the store is shown to anyone. Each is a real failure mode,
 - [ ] Confirmation page shows the right order
 - [ ] Merchant notification email arrives
 
-**Money path — the ones that matter**
-- [ ] **Tamper with the checkout request** — send a fabricated price — confirm it is ignored
-- [ ] Send quantity `0`, negative, and an absurdly large number — all rejected
-- [ ] Attempt to buy more than stock — rejected
-- [ ] **Replay the same Stripe webhook** — confirm exactly one order exists
-- [ ] **Send a webhook with no/invalid signature** — rejected, nothing written
-- [ ] **Change the order ID in the confirmation URL** — confirm another order cannot be read
-- [ ] Refund in Stripe — confirm the order status updates and stock returns (if applicable)
+**Money path - the ones that matter**
+- [ ] **Tamper with the checkout request** - send a fabricated price - confirm it is ignored
+- [ ] Send quantity `0`, negative, and an absurdly large number - all rejected
+- [ ] Attempt to buy more than stock - rejected
+- [ ] **Replay the same Stripe webhook** - confirm exactly one order exists
+- [ ] **Send a webhook with no/invalid signature** - rejected, nothing written
+- [ ] **Change the order ID in the confirmation URL** - confirm another order cannot be read
+- [ ] Refund in Stripe - confirm the order status updates and stock returns (if applicable)
 
 **Access**
-- [ ] Reach the admin URL without Cloudflare Access — denied
+- [ ] Reach the admin URL without Cloudflare Access - denied
 - [ ] Confirm no Stripe secret appears anywhere in the browser payloads or served JS
 
 **Boundaries**
@@ -191,7 +191,7 @@ Run every item before the store is shown to anyone. Each is a real failure mode,
 
 ## 10. Decisions (resolved 28 Sep 2026)
 
-1. **Product types — all three.** V1 supports **physical**, **digital**, and **service** products. Target catalog: **25 physical + 25 non-physical** (digital and service combined) = 50.
+1. **Product types - all three.** V1 supports **physical**, **digital**, and **service** products. Target catalog: **25 physical + 25 non-physical** (digital and service combined) = 50.
 
    This adds one subsystem and one checkout rule:
    - **physical** → requires shipping address, applies flat-rate shipping, tracks stock
@@ -200,19 +200,19 @@ Run every item before the store is shown to anyone. Each is a real failure mode,
 
    **Rule:** shipping options are added to the Stripe Checkout session **only if the cart contains at least one physical item.** A digital-only cart must not be charged shipping.
 
-   **Digital delivery — v1 is manual.** The merchant notification tells the owner which digital item was purchased and to whom; they send the file. Automatic signed download links from R2 are a v2 item. This keeps the first build bounded and removes a substitution/expiry/signed-URL subsystem.
+   **Digital delivery - v1 is manual.** The merchant notification tells the owner which digital item was purchased and to whom; they send the file. Automatic signed download links from R2 are a v2 item. This keeps the first build bounded and removes a substitution/expiry/signed-URL subsystem.
 
 2. **Product ceiling:** 50.
 
 3. **Demo store:** name "Demo Store"; sells demo physical, digital, and service items.
-   **Naming — decided:** literal placeholders with an encouraging tone. Pattern: `Demo [Type] NN — [short encouragement]`, e.g. `Demo Physical 01 — Your First Sale`. Every name states plainly that it is a demo, and the trailing phrase speaks kindly to a prospective founder rather than reading as a placeholder grunt.
-   **Catalog written:** `demo-catalog.csv`, 50 products — 25 physical, 15 digital, 10 service. **One physical item is seeded at `stock = 0` deliberately**, so the sold-out path is testable before a client ever sees it.
+   **Naming - decided:** literal placeholders with an encouraging tone. Pattern: `Demo [Type] NN - [short encouragement]`, e.g. `Demo Physical 01 - Your First Sale`. Every name states plainly that it is a demo, and the trailing phrase speaks kindly to a prospective founder rather than reading as a placeholder grunt.
+   **Catalog written:** `demo-catalog.csv`, 50 products - 25 physical, 15 digital, 10 service. **One physical item is seeded at `stock = 0` deliberately**, so the sold-out path is testable before a client ever sees it.
 
-4. **Where the demo lives:** **subdomain** — `store.victoriawinter00.com` — as a **separate Cloudflare project** with its own Pages, Worker, D1, and R2. Not a subpath of the consulting site: a subpath would require routing through the existing Pages project and puts the live site in the blast radius for no benefit.
+4. **Where the demo lives:** **subdomain** - `store.victoriawinter00.com` - as a **separate Cloudflare project** with its own Pages, Worker, D1, and R2. Not a subpath of the consulting site: a subpath would require routing through the existing Pages project and puts the live site in the blast radius for no benefit.
 
-5. **Storefront styling:** **built from the existing consulting site's design system**, not an external template. No verified off-the-shelf template exists for this exact stack, and third-party template licences often restrict resale — which matters because these builds are resold to clients. Reusing the existing components (cards, buttons, accessibility toggles, responsive layout) is free, matches the brand, and demonstrates our own work.
+5. **Storefront styling:** **built from the existing consulting site's design system**, not an external template. No verified off-the-shelf template exists for this exact stack, and third-party template licences often restrict resale - which matters because these builds are resold to clients. Reusing the existing components (cards, buttons, accessibility toggles, responsive layout) is free, matches the brand, and demonstrates our own work.
 
-6. **Time box — set:** **20+ hours/week building, 20+ hours/week outreach**, with outreach continuing until the first paying client signs. Recorded as a standing commitment, not a suggestion.
+6. **Time box - set:** **20+ hours/week building, 20+ hours/week outreach**, with outreach continuing until the first paying client signs. Recorded as a standing commitment, not a suggestion.
    **Caution retained:** with no clients, the constraint is not capability but **lead generation**. The build hours produce the thing you sell; the outreach hours produce the revenue. If a week gets tight, protect the outreach and let the build slip.
 
 ---
@@ -225,29 +225,29 @@ Run every item before the store is shown to anyone. Each is a real failure mode,
 
 ```
 shipping/index.js        resolveShipping({ items, products, config, destination })
-shipping/flat.js         v1 — implemented
-shipping/weight-band.js  v2 — socket only
+shipping/flat.js         v1 - implemented
+shipping/weight-band.js  v2 - socket only
 ```
 
-### v1 — flat rates (implemented)
+### v1 - flat rates (implemented)
 
 Multiple options per client, up to Stripe's limit of five. Each has:
-- `label` — e.g. "Standard shipping", "Express"
+- `label` - e.g. "Standard shipping", "Express"
 - `amount_cents`
-- `free_over_cents` — optional threshold above which shipping is free
-- `applies_to` — `all` or `physical_only`
+- `free_over_cents` - optional threshold above which shipping is free
+- `applies_to` - `all` or `physical_only`
 
-### v2 — weight bands (socket only, achievable)
+### v2 - weight bands (socket only, achievable)
 
 Fully compatible with hosted Checkout, because **the cart is known before the session is created**. Products gain `weight_g`; the strategy totals the cart weight, selects a band, and returns the rate. No new dependencies.
 
-### Not offered — zones/distance and carrier-calculated rates
+### Not offered - zones/distance and carrier-calculated rates
 
 **Operator decision, 29 Sep 2026: neither is offered.** Recorded here with the reasoning so it is a considered position rather than a gap.
 
 **Zones / distance-based rates.** Not offered. Two reasons, and the second is the one that decided it:
 
-1. Stripe's `shipping_address_collection` collects the address **on Stripe's page, after the session exists** — so at session creation we do not know the destination and cannot rate by distance. Working around it means either asking for a ZIP on our own page before redirect, or moving to embedded Checkout and changing the PCI posture.
+1. Stripe's `shipping_address_collection` collects the address **on Stripe's page, after the session exists** - so at session creation we do not know the destination and cannot rate by distance. Working around it means either asking for a ZIP on our own page before redirect, or moving to embedded Checkout and changing the PCI posture.
 2. Rating on the entered address is supported by Stripe, but documented as a **preview feature**. Depending on unfinished vendor functionality for a client's revenue path is not something to build a product on.
 
 **Carrier-calculated live rates (USPS / UPS / FedEx).** Not offered. Requires package-packing logic (how many boxes), dimensional weight, multi-box splitting, and handling carrier API failures mid-checkout. That is a subsystem in its own right, and it is precisely where the hosted platforms earn their subscription.
@@ -256,15 +256,15 @@ Fully compatible with hosted Checkout, because **the cart is known before the se
 
 ## 12. What is deliberately not in this document
 
-- The full D1 DDL — next artifact
-- The Worker endpoint list — next artifact
-- The service-agreement liability and closing checklist — next artifact, for attorney review
-- The pricing model (one-time build + required maintenance retainer) — next artifact
+- The full D1 DDL - next artifact
+- The Worker endpoint list - next artifact
+- The service-agreement liability and closing checklist - next artifact, for attorney review
+- The pricing model (one-time build + required maintenance retainer) - next artifact
 
 ---
 
 ## 13. Honest limits of this document
 
-This spec was drafted with AI assistance and has not been reviewed by a software engineer or an attorney. The safety requirements in Section 6 are sound engineering practice, but **the money path has not been independently reviewed and should be**, before a client's money depends on it. The tax position relies entirely on Stripe Tax and on the client remaining the merchant of record — confirm that with the client's own accountant.
+This spec was drafted with AI assistance and has not been reviewed by a software engineer or an attorney. The safety requirements in Section 6 are sound engineering practice, but **the money path has not been independently reviewed and should be**, before a client's money depends on it. The tax position relies entirely on Stripe Tax and on the client remaining the merchant of record - confirm that with the client's own accountant.
 
 If any of this proves wrong in practice, the spec is the thing to change first, not the code.

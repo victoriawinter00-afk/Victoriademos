@@ -4,7 +4,7 @@
    Why the sequencing matters: the payment provider redirects the customer here
    the moment payment completes, and its confirmation can arrive a moment later.
    Clearing the cart on page load would also punish someone who abandoned
-   checkout and came back. So the cart is emptied ONLY in the "recorded" state —
+   checkout and came back. So the cart is emptied ONLY in the "recorded" state - 
    never on load, never while the order is still arriving, never when the lookup
    fails. */
 (function () {
@@ -105,7 +105,7 @@
         setStatus("Still confirming your order.");
         setCopy(
             "Your payment went through. We are still confirming the order.",
-            "The payment provider accepted your payment but has not yet told the store. That is normal and usually takes only a moment — the order is recorded as soon as its confirmation arrives. Your cart has been kept, so nothing you chose is lost."
+            "The payment provider accepted your payment but has not yet told the store. That is normal and usually takes only a moment - the order is recorded as soon as its confirmation arrives. Your cart has been kept, so nothing you chose is lost."
         );
     }
 

@@ -1,5 +1,5 @@
 /**
- * v1 — flat rate. The only shipping strategy implemented.
+ * v1 - flat rate. The only shipping strategy implemented.
  *
  * Configuration comes from D1 (`shipping_rates`), never from code, because the
  * rate is the client's decision and changes per client:
@@ -14,7 +14,7 @@
  * THE PLACEHOLDER IS DELIBERATELY $1.00, not a plausible-looking $8.00. A rate
  * that is obviously wrong cannot go live by accident, and its description says
  * so on the customer's screen. Every value here has to be set by the client for
- * their own products and region — that is why it lives in D1 and not in code.
+ * their own products and region - that is why it lives in D1 and not in code.
  *
  * "Order subtotal" means the whole cart (items + quantities, before shipping).
  * If a client wants the threshold measured against physical items only, that is

@@ -1,5 +1,5 @@
 /* Storefront rendering. Fetches the local product API and builds DOM nodes.
-   All catalog text is written with textContent — never innerHTML — so product
+   All catalog text is written with textContent - never innerHTML - so product
    content cannot inject markup. No third-party code, no external requests. */
 (function () {
     "use strict";
@@ -417,7 +417,7 @@
                     "Product type: " + (TYPE_LABELS[product.type] || product.type) +
                     " · Item code: " + product.slug;
 
-                document.title = product.name + " — Demo Store";
+                document.title = product.name + " - Demo Store";
                 wireAddToCart(product);
                 status.hidden = true;
                 view.hidden = false;

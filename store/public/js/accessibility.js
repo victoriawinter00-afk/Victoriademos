@@ -1,4 +1,4 @@
-/* Accessibility toggles — same behavior as the consulting site's controls.
+/* Accessibility toggles - same behavior as the consulting site's controls.
    Plain script, no imports, no third-party code. */
 (function () {
     "use strict";

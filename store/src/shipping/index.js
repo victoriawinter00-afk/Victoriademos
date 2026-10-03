@@ -5,7 +5,7 @@
  * resolved cart, the per-client rate configuration from D1, and (when known) the
  * destination, and returns the options to hand to Stripe.
  *
- * WHAT WE KNOW, AND WHEN — this shapes the whole design:
+ * WHAT WE KNOW, AND WHEN - this shapes the whole design:
  * Stripe collects the shipping address on ITS OWN page, AFTER the session has
  * been created. So `destination` is null when we build the session. A strategy
  * that needs the destination cannot run here, which is why distance/zone rating

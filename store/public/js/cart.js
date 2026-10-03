@@ -1,6 +1,6 @@
 /* Cart storage and cart-page rendering.
 
-   The stored shape is exactly [{ slug, quantity }] — never prices.
+   The stored shape is exactly [{ slug, quantity }] - never prices.
    Every value read from localStorage is treated as attacker-controlled: it is
    validated and normalized before use, and the cleaned form is written back.
    This module is a display layer. It is not a security boundary, and nothing it
@@ -172,7 +172,7 @@
         refreshCount();
     }
 
-    /* Empties the cart. Called only when an order is CONFIRMED to exist — never
+    /* Empties the cart. Called only when an order is CONFIRMED to exist - never
        on page load, or someone who abandons checkout and comes back would lose
        the selection they were still deciding on. */
     function clear() {
@@ -469,7 +469,7 @@
         return slug;
     }
 
-    /* Sends slugs and quantities only — never a price. The server resolves
+    /* Sends slugs and quantities only - never a price. The server resolves
        everything again and answers with a redirect URL or a structured error. */
     function onCheckoutClick() {
         var button = document.getElementById("cart-checkout");

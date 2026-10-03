@@ -1,13 +1,13 @@
 /**
- * demo-store-payments — the Stripe egress proxy for demo-store (Worker B).
+ * demo-store-payments - the Stripe egress proxy for demo-store (Worker B).
  *
  * WHY THIS WORKER EXISTS (E-29)
  * -----------------------------
  * A Worker invoked on the store's custom domain (store.victoriawinter00.com)
- * cannot complete a TLS handshake to api.stripe.com — Cloudflare answers 525
+ * cannot complete a TLS handshake to api.stripe.com - Cloudflare answers 525
  * before Stripe is ever reached. The same code succeeds when the invoking Worker
  * runs on a workers.dev hostname. A Worker cannot call its *own* workers.dev
- * hostname (522), so the hop has to be a SEPARATE Worker — this one.
+ * hostname (522), so the hop has to be a SEPARATE Worker - this one.
  *
  *     store Worker (custom domain) -> this Worker (workers.dev) -> api.stripe.com
  *
@@ -44,7 +44,7 @@ function json(data, status) {
   });
 }
 
-/** An unauthenticated caller must learn nothing — 404, never 403. */
+/** An unauthenticated caller must learn nothing - 404, never 403. */
 function notFound() {
   return new Response("Not found", { status: 404 });
 }
@@ -116,7 +116,7 @@ async function rateLimited(env, ip) {
 
 async function callStripe(env, operation, stripePath, options) {
   if (!env.STRIPE_SECRET_KEY) {
-    console.error(`proxy: ${operation} blocked — no Stripe key configured`);
+    console.error(`proxy: ${operation} blocked - no Stripe key configured`);
     return json(
       { error: "proxy_not_configured", message: "The payment proxy is not configured." },
       503,
@@ -143,7 +143,7 @@ async function callStripe(env, operation, stripePath, options) {
   }
 
   const text = await response.text();
-  // Log the operation and the provider status ONLY — never the key, the request
+  // Log the operation and the provider status ONLY - never the key, the request
   // body, or the session id.
   console.log(`proxy: ${operation} stripe_status=${response.status}`);
 

@@ -20,7 +20,7 @@
   //
   // >>> REPLACE BOTH PLACEHOLDERS once the Cloudflare Access application exists.
   // >>> Neither value exists yet. Until they are set, admin is unreachable in
-  // >>> production — and it FAILS CLOSED, so nothing will look like an error.
+  // >>> production - and it FAILS CLOSED, so nothing will look like an error.
   //
   // LOCAL DEVELOPMENT DOES NOT USE THESE. `wrangler dev` gives `.dev.vars`
   // precedence over `vars`, so a local checkout keeps pointing at the local test

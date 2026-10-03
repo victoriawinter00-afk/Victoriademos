@@ -1,10 +1,10 @@
-# Demo Store — Phase 1 scaffold
+# Demo Store - Phase 1 scaffold
 
 A small, client-owned store: **one Cloudflare Worker** serves both the static
 storefront and the product API, backed by **D1** (data) and **R2** (images).
 Single origin, so there is no CORS, no preflight, and no allowed-origin list.
 
-This is the store demo — the first project in the `Victoriademos` repository, and
+This is the store demo - the first project in the `Victoriademos` repository, and
 it lives in `store/`. It is **separate from the consulting site** and shares
 nothing with it except the visual design language (same palette, cards, top bar,
 and responsive layout, reimplemented in `public/css/store.css`).
@@ -54,7 +54,7 @@ resolve to local storage under `.wrangler/` and nothing touches an account.
 
 ### Re-seeding and resetting
 
-Seed is idempotent — running `npm run db:seed` again updates the existing rows
+Seed is idempotent - running `npm run db:seed` again updates the existing rows
 (`ON CONFLICT(slug) DO UPDATE`) and never creates duplicates. Product ids are
 uuid v4 and stay stable after the first insert.
 
@@ -65,17 +65,17 @@ To wipe local state completely, delete the `.wrangler/` directory (or just
 
 `scripts/seed.mjs` parses `docs/demo-catalog.csv` (quoted fields included), writes
 an idempotent SQL file to `scripts/.tmp/seed.sql`, and executes it with
-`wrangler d1 execute demo-store-db --local`. It is **strict** — a row whose field
+`wrangler d1 execute demo-store-db --local`. It is **strict** - a row whose field
 count does not match the header stops the import with the row number and the
 expected/actual counts, rather than guessing which column the extra fields belong
-to. It also validates the spec rules while parsing —
+to. It also validates the spec rules while parsing - 
 
 - `type` must be `physical`, `digital`, or `service`
 - `price_cents` must be a non-negative integer
 - `stock` must be **empty** for digital and service, and a non-negative integer
   for physical (NULL means "not stock-tracked", not zero)
 
-— and exits with a clear error if a row breaks them.
+ - and exits with a clear error if a row breaks them.
 
 ## Cart (phase 2a)
 
@@ -94,7 +94,7 @@ quantities that are not integers of at least 1 are discarded; quantities above
 The cart page re-reads `GET /api/products` and computes the running total from
 those server prices at render time. A slug that is no longer present or has gone
 inactive is removed from the cart with a visible notice. Availability is shown
-for information only — the server is the authority, and re-validates everything
+for information only - the server is the authority, and re-validates everything
 at checkout.
 
 ## Checkout (phase 2b)
@@ -103,9 +103,9 @@ at checkout.
 Worker resolves **every** price and stock level from D1 and ignores anything
 price-shaped in the request. Any unknown or inactive slug, any quantity that is
 not a whole number between 1 and 99, and any over-stock physical item rejects
-the **whole** request — nothing is ever partially fulfilled.
+the **whole** request - nothing is ever partially fulfilled.
 
-It then creates a Stripe Checkout session **through the payments proxy** — Worker A
+It then creates a Stripe Checkout session **through the payments proxy** - Worker A
 no longer talks to Stripe directly, because it cannot complete TLS to `api.stripe.com`
 from this custom domain (E-29). See **Payments proxy (Worker B)** below. There is no
 `stripe` package in this project; the hop is a plain `fetch`. The response is
@@ -122,13 +122,13 @@ from this custom domain (E-29). See **Payments proxy (Worker B)** below. There i
   local and deployed behave the same without a hardcoded host.
 
 **Orders are recorded by the Phase 3 webhook**, not by this endpoint. Stock is
-**held** (not reserved against `stock`) when the session is created — see below.
+**held** (not reserved against `stock`) when the session is created - see below.
 
 Nothing Stripe-related loads on any page. Hosted Checkout is a pure server-side
 redirect: our pages contain no Stripe script, no publishable key, and no card
 fields.
 
-### How long a hold lasts — the stock-exposure dial
+### How long a hold lasts - the stock-exposure dial
 
 `CHECKOUT_SESSION_MINUTES` in `src/index.js` (default **30**, Stripe's minimum)
 sets how long an unpaid session holds its units. **This is a stock-exposure
@@ -141,11 +141,11 @@ the demo; a real client may reasonably prefer 60.
 
 Two layers:
 
-- `products.reserved` — a counter, so availability is one atomic conditional
+- `products.reserved` - a counter, so availability is one atomic conditional
   `UPDATE` with no read-then-write race. Two customers clicking at the same
   instant for the last unit: exactly one gets it, the other is told it is sold
   out **before paying**.
-- `stock_reservations` — one row per held line, recording where the hold came
+- `stock_reservations` - one row per held line, recording where the hold came
   from and when it dies.
 
 The rows make **lazy expiry** possible. If a `checkout.session.expired` webhook
@@ -153,7 +153,7 @@ never arrives, nothing leaks: every availability check ignores holds past their
 `expires_at` and subtracts only the live ones, so the counter repairs itself the
 next time anyone asks. **No cron job, no scheduled Worker, no sweeper process.**
 
-Availability is reported on this basis too — a physical product fully held by open
+Availability is reported on this basis too - a physical product fully held by open
 checkouts reads as out of stock in `GET /api/products`, not as in stock.
 
 ## Orders and the Stripe webhook (phase 3)
@@ -162,9 +162,9 @@ checkouts reads as out of stock in `GET /api/products`, not as in stock.
 fixed and identical every time:
 
 1. read the **raw** body (the signature covers exact bytes)
-2. **verify the signature** — `400` on failure, and **no work at all** on an
+2. **verify the signature** - `400` on failure, and **no work at all** on an
    unverified request
-3. insert the event id into `processed_events` — a duplicate returns `200` and
+3. insert the event id into `processed_events` - a duplicate returns `200` and
    stops (the replay guard)
 4. do the work
 5. return `200`
@@ -177,11 +177,11 @@ compensation a transient database error would permanently lose an event.
 |---|---|
 | `checkout.session.completed` | `orders` + `order_items` are written **from the session metadata**, never from a browser; `stock` and `reserved` both drop by the quantity; the hold is marked consumed |
 | `checkout.session.expired` | the hold is released (`reserved` drops, `stock` unchanged) |
-| `charge.refunded` | the order is marked `refunded` and the stock is returned, **once** — a second refund event does not return it again |
+| `charge.refunded` | the order is marked `refunded` and the stock is returned, **once** - a second refund event does not return it again |
 | anything else | logged, `200`. Never `500` on an unhandled type, or the provider retries forever |
 
-**A paid order is never dropped.** If the shelf cannot cover a paid order — the
-last unit sold between checkout and payment — the order is still written and
+**A paid order is never dropped.** If the shelf cannot cover a paid order - the
+last unit sold between checkout and payment - the order is still written and
 `orders.needs_attention` is set to 1 so a human looks at it. An order that
 vanishes because stock ran out is a customer who paid and got nothing, and nobody
 finds out until they complain.
@@ -190,24 +190,24 @@ finds out until they complain.
 
 Local: `STRIPE_WEBHOOK_SECRET` in `store/.dev.vars` (gitignored). Any
 `whsec_`-shaped value works locally, because **you sign your own test payloads
-with it** — which exercises signature verification, the replay guard, and every
+with it** - which exercises signature verification, the replay guard, and every
 branch without the Stripe CLI or a Stripe account.
 
 Production: the signing secret from the Stripe dashboard, stored as a Worker
 secret. It is never committed and never pasted into a chat.
 
-### Merchant notification — deliberately stubbed
+### Merchant notification - deliberately stubbed
 
 `notifyMerchant()` in `src/webhook.js` logs instead of sending. There is **no
 Cloudflare Email Sending binding in this project and none has been added**:
 Email Sending requires a Workers Paid plan, and quietly adding the binding would
 change the deployment requirements. The function is the marked seam.
 
-### Shipping — per client, configured in D1
+### Shipping - per client, configured in D1
 
 Rates are **the client's decision and are set per client**. They live in the D1
 `shipping_rates` table, not in code, so a rate can be changed without a redeploy.
-The demo ships with two placeholder rows — Standard and Express — and **both are
+The demo ships with two placeholder rows - Standard and Express - and **both are
 deliberately set to an obviously wrong $1.00/$2.00**. That is on purpose: a rate
 that looks plausible can be missed, and an obviously wrong one cannot go live by
 accident. Their customer-visible description says the client must set the real
@@ -217,10 +217,10 @@ value.
 |---|---|
 | `label` | what the customer sees ("Standard shipping") |
 | `description` | a line of explanation shown under the label on Stripe's page |
-| `amount_cents` | the rate in cents — `100` = $1.00 (placeholder) |
+| `amount_cents` | the rate in cents - `100` = $1.00 (placeholder) |
 | `free_over_cents` | optional: at or above this cart subtotal the option is free; `NULL` = always charged |
 | `applies_to` | `all` or `physical_only` |
-| `strategy` | which strategy computes the rate — only `flat` exists today |
+| `strategy` | which strategy computes the rate - only `flat` exists today |
 | `active`, `sort_order` | on/off, and the order shown (Stripe accepts at most 5 options) |
 
 Change the standard rate to $6.00:
@@ -235,8 +235,8 @@ database id is in `wrangler.jsonc`.)
 
 **Strategies** live in `src/shipping/`:
 
-- `flat.js` — the only implemented strategy.
-- `weight-band.js` — a reserved slot, deliberately **not wired up**. It sums
+- `flat.js` - the only implemented strategy.
+- `weight-band.js` - a reserved slot, deliberately **not wired up**. It sums
   `quantity × weight_g` over the physical lines and matches a band. There is no
   `weight_g` column and no `weight_bands` table, so nothing in D1 is driving it
   today; the file documents the intended shape, including the same $1.00
@@ -245,10 +245,10 @@ database id is in `wrangler.jsonc`.)
 **Distance / zone-based rates are not offered** (MVP-SPEC §11). Stripe collects
 the shipping address *after* the session is created, so rating on destination
 would depend on a Stripe preview feature or on adding a postcode step before
-redirect — a dependency on unfinished vendor functionality in a client's revenue
+redirect - a dependency on unfinished vendor functionality in a client's revenue
 path. Carrier-calculated rates are out of scope too.
 
-`SHIPPING_COUNTRIES` in `src/index.js` is still a placeholder — the list of
+`SHIPPING_COUNTRIES` in `src/index.js` is still a placeholder - the list of
 countries a physical order may ship to is a business decision.
 
 ### `reserved` and reservations
@@ -272,13 +272,13 @@ npm run db:seed
 
 ## Storefront controls (phase 2c)
 
-**Category filters.** Four toggle buttons — All Products, Digital, Physical,
-Service — above the grid. Digital/Physical/Service multi-select; the selected set
+**Category filters.** Four toggle buttons - All Products, Digital, Physical,
+Service - above the grid. Digital/Physical/Service multi-select; the selected set
 *is* the state and an empty set means All Products, so mutual exclusion holds by
 construction rather than by bookkeeping. Unselecting the last specific type
 reverts to All Products instead of leaving an empty grid. Filtering is
 client-side (`/api/products` already returns everything) and the state is
-**in-memory**, so it resets on navigation — which is exactly what makes "return to
+**in-memory**, so it resets on navigation - which is exactly what makes "return to
 store" land in the default layout.
 
 The result count is written to a plain element on first render. The `aria-live`
@@ -301,7 +301,7 @@ follows the scroll. It is **not a second cart**: it reads and writes only throug
 `window.StoreCart` (the one `store-cart` key) and prices lines from the same
 `GET /api/products` the cart page uses, so the two cannot disagree. It is revealed
 only when **two independent gates** pass: a viewport floor
-(`documentElement.clientWidth ≥ 1200` — below that the storefront is in its
+(`documentElement.clientWidth ≥ 1200` - below that the storefront is in its
 tablet/mobile range and `/cart` is the cart) **and** a measured check that the free
 space beside the rendered grid fits the panel
 (`clientWidth − grid.getBoundingClientRect().right ≥ panel width + 2 × 24px`; in
@@ -331,8 +331,8 @@ and instantly when `prefers-reduced-motion: reduce` matches, then moves focus to
 `#main-content`.
 
 **Social preview.** `index.html` carries Open Graph and Twitter `summary_large_image`
-tags with **absolute** URLs, pointing at `public/og-image-store.png` — a real
-1200×630 PNG — with `og:image:width`/`height`/`type` matching the file. The source
+tags with **absolute** URLs, pointing at `public/og-image-store.png` - a real
+1200×630 PNG - with `og:image:width`/`height`/`type` matching the file. The source
 template is `store-og-template.html` at the repository root, deliberately outside
 `public/` so it is not served.
 
@@ -344,11 +344,11 @@ exception into a structured `500` JSON body, so a platform error code (1101) is 
 surfaced.
 
 **Category glyphs.** When a product has no photograph, its media block is filled with
-a stroke line drawing for its type — garment, download arrow, calendar. The SVG is
+a stroke line drawing for its type - garment, download arrow, calendar. The SVG is
 built **inline** in `public/js/store.js` (`buildTypeGlyph`), never fetched:
 `/images/*` is in `run_worker_first`, so a file under `public/images/` would be
 shadowed by the Worker and 404. The ink is `--color-media-ink`, which deliberately
-does **not** flip with the theme — the media gradient stays light in every mode (dark
+does **not** flip with the theme - the media gradient stays light in every mode (dark
 mode just composites it over the darker card), which is why the glyph is not
 `currentColor`. The drawing is decorative and stays out of the accessibility tree;
 the type is also printed as visible text on the card.
@@ -359,7 +359,7 @@ the type is also printed as visible text on the card.
 with line items read from the **order snapshot** rather than joined back to
 `products`, so a later price change cannot rewrite what someone bought.
 
-The **session id is the bearer token** — Stripe generates it, it is long and
+The **session id is the bearer token** - Stripe generates it, it is long and
 unguessable, and Stripe returns it in the success URL. It is the only accepted
 key: never an order id, never an email. It is never logged.
 
@@ -371,14 +371,14 @@ Three outcomes, because the redirect genuinely can beat the webhook:
 | `202 {status:"pending"}` | the payment exists but the record has not landed; the page retries a few times, then explains honestly, and **keeps the cart** |
 | `404` | no completed payment for that link; the page says so plainly and **keeps the cart** |
 
-## Admin API (phase 4) — API only, no UI
+## Admin API (phase 4) - API only, no UI
 
 ### The security model
 
 Cloudflare Access sits in front of the deployed hostname and injects a signed
 `Cf-Access-Jwt-Assertion` header. **But this Worker also answers on a
 `workers.dev` hostname, which Access does not cover unless it is configured for
-it separately.** So "the header is present" is not evidence of anything — anyone
+it separately.** So "the header is present" is not evidence of anything - anyone
 who finds that hostname can type a header by hand. Only the header's
 **signature** is evidence, so the token is verified cryptographically.
 
@@ -402,7 +402,7 @@ confirms the route exists to someone not entitled to know that.
 Read from the environment, never hardcoded. Locally they live in `.dev.vars`
 (gitignored); when deployed they are Worker configuration.
 
-One variable does double duty — JWKS URL and issuer — precisely because
+One variable does double duty - JWKS URL and issuer - precisely because
 Cloudflare signs with `iss` equal to the team domain. That is what makes the
 whole verification path locally testable: point `CF_ACCESS_TEAM_DOMAIN` at a
 local JWKS server and the real code runs unchanged. **There is no local bypass in
@@ -415,10 +415,10 @@ the code, and none was needed.**
 | `GET /api/admin/products` | every product, including inactive |
 | `POST /api/admin/products` | create. Validates slug, type, integer cents, and that `stock` is NULL for non-physical |
 | `PATCH /api/admin/products/:slug` | partial update. The slug cannot be changed (it is the public address), and changing a product away from physical clears `stock` |
-| `DELETE /api/admin/products/:slug` | **soft delete** — `active = 0`. The row is never deleted, because order snapshots reference it |
+| `DELETE /api/admin/products/:slug` | **soft delete** - `active = 0`. The row is never deleted, because order snapshots reference it |
 | `GET /api/admin/orders` | filters `status`, `email`, `since`, `until`, `limit` (max 500); returns a `needs_attention` count |
 | `GET /api/admin/orders/:id` | the order with its line-item snapshots |
-| `PATCH /api/admin/orders/:id` | `{ "status": "fulfilled" }` sets the status and stamps `fulfilled_at` once — repeating it does not move the timestamp |
+| `PATCH /api/admin/orders/:id` | `{ "status": "fulfilled" }` sets the status and stamps `fulfilled_at` once - repeating it does not move the timestamp |
 
 ### Audit
 
@@ -430,9 +430,9 @@ remembering.
 
 ### Not built here
 
-- **No admin UI** — deliberately API only.
+- **No admin UI** - deliberately API only.
 - **Image upload to R2 is phase 4e** and is separate.
-- **Nothing clears `needs_attention` yet** — it is surfaced, not dismissible.
+- **Nothing clears `needs_attention` yet** - it is surfaced, not dismissible.
 - Whether Access blocks an unauthenticated request **at the edge** can only be
   verified against a deployed route.
 
@@ -442,7 +442,7 @@ remembering.
 
 `POST /api/admin/products/:slug/image` with the **raw image bytes** as the body and
 a `Content-Type` of `image/jpeg`, `image/png` or `image/webp`. There is no admin
-UI, so this is a raw body rather than multipart — one less parser to get wrong.
+UI, so this is a raw body rather than multipart - one less parser to get wrong.
 
 ```bash
 curl -X POST "http://127.0.0.1:8787/api/admin/products/demo-physical-01/image" \
@@ -457,7 +457,7 @@ unauthenticated caller gets **404**. The rules are about what a file **is**:
 - the declared `Content-Type` must be on the allowlist, **and**
 - the **bytes must actually be** a JPEG, PNG or WebP (JPEG `FF D8 FF`; PNG's
   eight-byte signature; `RIFF` + `WEBP`), **and**
-- **the two must agree** — a file declaring `image/png` whose bytes are JPEG is
+- **the two must agree** - a file declaring `image/png` whose bytes are JPEG is
   refused, not quietly re-labelled.
 
 The stored type and the file extension come from the **sniffed bytes**, never
@@ -478,7 +478,7 @@ risk this endpoint exists to avoid.
 
 `GET /images/:key`. The key is validated against the exact shape the upload
 generates **before R2 is touched**, so traversal cannot reach the bucket. The
-bucket itself is never public — everything goes through the Worker, which is what
+bucket itself is never public - everything goes through the Worker, which is what
 makes the headers enforceable:
 
 | Header | Why |
@@ -497,7 +497,7 @@ Cards and the product page render the image when `image_key` is set and the
 styled placeholder when it is not. Alt text is the product name. Images are
 same-origin `/images/...` only, so the zero-third-party-request property holds.
 
-## Payments proxy (Worker B) — the E-29 workaround
+## Payments proxy (Worker B) - the E-29 workaround
 
 **Why this exists.** A Worker invoked on this custom domain cannot complete a TLS
 handshake to `api.stripe.com`: Cloudflare answers **525** and Stripe never sees the
@@ -519,8 +519,8 @@ No CORS, no browser change, no change to Access or to the storefront hostname.
 ### What Worker B is, and is not
 
 It is **not a generic proxy**. It exposes exactly two operations with fixed Stripe
-paths — `POST /create-session` → `/v1/checkout/sessions` and
-`GET /get-session/:id` → `/v1/checkout/sessions/{id}` — so even a caller who learns
+paths - `POST /create-session` → `/v1/checkout/sessions` and
+`GET /get-session/:id` → `/v1/checkout/sessions/{id}` - so even a caller who learns
 the shared secret cannot make it call anything else. It:
 
 - requires `x-proxy-secret` to equal `env.PROXY_SECRET`, and answers **404** (never
@@ -531,7 +531,7 @@ the shared secret cannot make it call anything else. It:
   eventually consistent and a burst could under-count; if the binding is absent it
   falls back to a per-isolate limit and logs a warning;
 - validates the session id against `^cs_[A-Za-z0-9_]{1,200}$` before interpolating it;
-- logs the operation and the Stripe status only — never the key, the body, or the id;
+- logs the operation and the Stripe status only - never the key, the body, or the id;
 - returns JSON in every case, so a non-JSON upstream can never become a parse error
   in Worker A.
 
@@ -540,9 +540,9 @@ the shared secret cannot make it call anything else. It:
 | Value | Where |
 |---|---|
 | `PAYMENTS_PROXY_URL` | `wrangler.jsonc` → `vars` (not a secret) |
-| `PROXY_SECRET` | **secret on both Workers** — `wrangler secret put PROXY_SECRET` |
+| `PROXY_SECRET` | **secret on both Workers** - `wrangler secret put PROXY_SECRET` |
 | `STRIPE_SECRET_KEY` | Worker B only |
-| `STRIPE_WEBHOOK_SECRET` | Worker A only — the webhook is local crypto + D1 and makes **zero** outbound calls |
+| `STRIPE_WEBHOOK_SECRET` | Worker A only - the webhook is local crypto + D1 and makes **zero** outbound calls |
 
 Worker A's `handleCheckout` and `getOrderForSession` are the only two functions that
 call Stripe; both now call Worker B. Nothing else changed.
@@ -579,12 +579,12 @@ gives `.dev.vars` precedence over `vars`, which is what lets Worker A point at t
 local proxy without touching committed config.
 
 ```bash
-# terminal 1 — the proxy on 8788
+# terminal 1 - the proxy on 8788
 cd demo-store-payments
 npx wrangler d1 execute demo-store-payments-db --local --file=./schema.sql   # once
 npx wrangler dev --port 8788 --ip 127.0.0.1
 
-# terminal 2 — the store on 8787
+# terminal 2 - the store on 8787
 cd store
 npm run dev
 ```
@@ -592,7 +592,7 @@ npm run dev
 `store/.dev.vars` needs `PAYMENTS_PROXY_URL=http://127.0.0.1:8788` and a matching
 `PROXY_SECRET`; `demo-store-payments/.dev.vars` needs the same `PROXY_SECRET` plus
 `STRIPE_SECRET_KEY`. Both files are gitignored. `npm run dev` in
-`demo-store-payments` works too, once its own dependencies are installed — this
+`demo-store-payments` works too, once its own dependencies are installed - this
 machine's npm policy blocks the `workerd`/`esbuild` postinstall, so locally the
 proxy was run with the store's wrangler.
 
@@ -604,14 +604,14 @@ proxy was run with the store's wrangler.
 | the same two, locally | `store/.dev.vars` (gitignored) | `wrangler dev` gives `.dev.vars` **precedence over `vars`** |
 
 **Replace both placeholders in `wrangler.jsonc` before deploying.** Until they are
-real, admin is unreachable in production — and it **fails closed**, so nothing
+real, admin is unreachable in production - and it **fails closed**, so nothing
 will look like an error.
 
 Local development keeps pointing at the local test JWKS, because `.dev.vars`
 wins. That is the point of the split: there is no single file in which a
 localhost value can be deployed by accident.
 
-Neither value is a secret — the team domain *is* the JWKS URL, and both values
+Neither value is a secret - the team domain *is* the JWKS URL, and both values
 appear in every Access token. Committing them makes them reviewable, which a
 secret is not.
 
@@ -628,12 +628,12 @@ Two different protection scopes share one hostname:
 
 | Path | Protection |
 |---|---|
-| `/images/*` | **none** — anonymous visitors must be able to render product images |
+| `/images/*` | **none** - anonymous visitors must be able to render product images |
 | `/api/admin/*` | Cloudflare Access at the edge, **plus** token verification inside the Worker |
 
 The Access application must protect `/api/admin/*` only; protecting everything
 would break the storefront. And note: a custom domain does not retire the
-`workers.dev` hostname, so **Access is not what protects the admin API — the JWT
+`workers.dev` hostname, so **Access is not what protects the admin API - the JWT
 verification is.** Access is defence in depth; the guard is the control.
 
 `run_worker_first` lists `/images/*` as well as `/api/*`, so no static asset can
@@ -643,7 +643,7 @@ ever shadow the stored-image route.
 
 The Checkout session carries two `custom_text` notices (above the pay button, and
 after it) and a pre-filled `customer_email`. **Checkout does not permit locking
-the email field** — a visitor can overwrite it, so it is a convenience rather than
+the email field** - a visitor can overwrite it, so it is a convenience rather than
 a guarantee. The reliable record of who paid is the order's email, written from
 the provider's own confirmation, never from the browser. The cart carries the same
 notice above its Checkout button, before any redirect.
@@ -670,7 +670,7 @@ The list endpoint never returns a raw stock number; physical products expose
 
 ```
 store/
-├─ schema.sql             D1 schema — tables and indexes, from docs/DATA-AND-API.md §1
+├─ schema.sql             D1 schema - tables and indexes, from docs/DATA-AND-API.md §1
 ├─ wrangler.jsonc         Worker + static assets + D1 + R2 bindings (local)
 ├─ package.json           dev/schema/seed scripts
 ├─ scripts/seed.mjs       docs/demo-catalog.csv -> local D1
